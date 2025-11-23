@@ -9,7 +9,7 @@
 
 declare(strict_types=1);
 
-namespace GalaxonPHPCodingStandard\Sniffs\Classes;
+namespace Galaxon\Sniffs\Classes;
 
 use PHP_CodeSniffer\Files\File;
 use PHP_CodeSniffer\Sniffs\Sniff;

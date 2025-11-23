@@ -1,13 +1,13 @@
 <?xml version="1.0"?>
-<ruleset name="GalaxonPHPCodingStandard">
+<ruleset name="Galaxon">
     <description>Galaxon PHP Coding Standard</description>
 
     <!-- Inherit from PSR-12 -->
     <rule ref="PSR12"/>
 
     <!-- Custom sniffs -->
-    <rule ref="GalaxonPHPCodingStandard.NamingConventions.ValidVariableName"/>
-    <rule ref="GalaxonPHPCodingStandard.Classes.ClassInstantiationNoBrackets"/>
+    <rule ref="Galaxon.NamingConventions.ValidVariableName"/>
+    <rule ref="Galaxon.Classes.ClassInstantiationNoBrackets"/>
 
     <!-- Allow multiple classes in test files for test fixtures -->
     <rule ref="PSR1.Classes.ClassDeclaration.MultipleClasses">

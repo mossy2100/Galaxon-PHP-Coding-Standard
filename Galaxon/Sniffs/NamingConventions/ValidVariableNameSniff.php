@@ -9,7 +9,7 @@
  * @license   https://github.com/PHPCSStandards/PHP_CodeSniffer/blob/HEAD/licence.txt BSD Licence
  */
 
-namespace GalaxonPHPCodingStandard\Sniffs\NamingConventions;
+namespace Galaxon\Sniffs\NamingConventions;
 
 use PHP_CodeSniffer\Files\File;
 use PHP_CodeSniffer\Sniffs\AbstractScopeSniff;
