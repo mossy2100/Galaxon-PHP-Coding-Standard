@@ -1,0 +1,1 @@
+# Galaxon-PHP-Coding-Standard
