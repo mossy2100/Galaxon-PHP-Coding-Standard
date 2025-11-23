@@ -42,7 +42,7 @@ class ValidVariableNameSniff extends AbstractVariableSniff
 
         // Forbid a leading underscore if present.
         if ($varName[0] === '_') {
-            $error = '%s "%s" must not be prefixed with an underscore.';
+            $error = '%s "$%s" must not be prefixed with an underscore.';
             $data = [$varType, $varName];
             $phpcsFile->addError($error, $stackPtr, 'LeadingUnderscore', $data);
             $result = false;
@@ -50,7 +50,7 @@ class ValidVariableNameSniff extends AbstractVariableSniff
 
         // Check the variable name is in $lowerCamelCaps format.
         if (Common::isCamelCaps($varName, false, true, false) === false) {
-            $error = '%s "%s" is not in valid $lowerCamelCase format.';
+            $error = '%s "$%s" is not in valid $lowerCamelCase format.';
             $data = [$varType, $varName];
             $phpcsFile->addError($error, $stackPtr, 'MemberNotCamelCaps', $data);
             $result = false;
