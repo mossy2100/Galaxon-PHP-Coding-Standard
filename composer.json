@@ -1,0 +1,32 @@
+{
+    "name": "galaxon/coding-standard",
+    "description": "Galaxon PHP Coding Standard, based on PSR-12 plus some extra rules.",
+    "type": "phpcodesniffer-standard",
+    "license": "MIT",
+    "require": {
+        "php": "^8.4"
+    },
+    "require-dev": {
+        "squizlabs/php_codesniffer": "^4.0",
+        "phpstan/phpstan": "^2.1",
+        "dealerdirect/phpcodesniffer-composer-installer": "^1.0"
+    },
+    "scripts": {
+        "fix": "vendor/bin/phpcbf",
+        "check": "vendor/bin/phpcs",
+        "analyse": "vendor/bin/phpstan analyse -l 9",
+        "quality": [
+            "@fix",
+            "@check",
+            "@analyse"
+        ]
+    },
+    "extra": {
+        "phpcodesniffer-search-depth": 3
+    },
+    "config": {
+        "allow-plugins": {
+            "dealerdirect/phpcodesniffer-composer-installer": true
+        }
+    }
+}

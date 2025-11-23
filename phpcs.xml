@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<ruleset name="Galaxon PHP Coding Standard">
+    <description>Coding standard for Galaxon PHP libraries</description>
+
+    <!-- Register custom standard location -->
+    <config name="installed_paths" value="GalaxonPHPCodingStandard"/>
+
+    <!-- Paths to check -->
+    <file>GalaxonPHPCodingStandard</file>
+
+    <!-- Galaxon Coding Standard (includes PSR12 + custom rules) -->
+    <rule ref="GalaxonPHPCodingStandard"/>
+
+</ruleset>
