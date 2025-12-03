@@ -3,10 +3,10 @@
     <description>Coding standard for Galaxon PHP libraries</description>
 
     <!-- Register custom standard location -->
-    <config name="installed_paths" value="Galaxon"/>
+    <config name="installed_paths" value="src/Galaxon"/>
 
     <!-- Paths to check -->
-    <file>Galaxon</file>
+    <file>src/Galaxon</file>
 
     <!-- Galaxon Coding Standard (includes PSR12 + custom rules) -->
     <rule ref="Galaxon"/>

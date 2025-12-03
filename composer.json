@@ -13,7 +13,7 @@
     },
     "scripts": {
         "fix": "vendor/bin/phpcbf",
-        "check": "vendor/bin/phpcs",
+        "check": "vendor/bin/phpcs -s",
         "analyse": "vendor/bin/phpstan analyse -l 9",
         "quality": [
             "@fix",
