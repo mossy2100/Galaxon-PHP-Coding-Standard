@@ -9,7 +9,7 @@
  * @license   https://github.com/PHPCSStandards/PHP_CodeSniffer/blob/HEAD/licence.txt BSD Licence
  */
 
-namespace Galaxon\Sniffs\NamingConventions;
+namespace dev\Sniffs\NamingConventions;
 
 use PHP_CodeSniffer\Files\File;
 use PHP_CodeSniffer\Sniffs\AbstractScopeSniff;
@@ -48,8 +48,8 @@ class ValidVariableNameSniff extends AbstractVariableSniff
             $result = false;
         }
 
-        // Check the variable name is in $lowerCamelCaps format.
-        if (Common::isCamelCaps($varName, false, true, false) === false) {
+        // Check the variable name is in $lowerCamelCaps format (lower-case, public, strict).
+        if (Common::isCamelCaps($varName, false, true, true) === false) {
             $error = '%s "$%s" is not in valid $lowerCamelCase format.';
             $data = [$varType, $varName];
             $phpcsFile->addError($error, $stackPtr, 'MemberNotCamelCaps', $data);

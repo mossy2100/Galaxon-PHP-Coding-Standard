@@ -4,15 +4,16 @@
     "type": "phpcodesniffer-standard",
     "license": "MIT",
     "require": {
-        "php": "^8.4"
+        "php": "^8.4",
+        "squizlabs/php_codesniffer": "^4.0",
+        "dealerdirect/phpcodesniffer-composer-installer": "^1.0",
+        "slevomat/coding-standard": "^8.25"
     },
     "require-dev": {
-        "squizlabs/php_codesniffer": "^4.0",
-        "phpstan/phpstan": "^2.1",
-        "dealerdirect/phpcodesniffer-composer-installer": "^1.0"
+        "phpstan/phpstan": "^2.1"
     },
     "scripts": {
-        "fix": "vendor/bin/phpcbf",
+        "fix": "vendor/bin/phpcbf -vp",
         "check": "vendor/bin/phpcs -s",
         "analyze": "vendor/bin/phpstan analyze -l 9",
         "quality": [

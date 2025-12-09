@@ -9,7 +9,7 @@
 
 declare(strict_types=1);
 
-namespace Galaxon\Sniffs\Classes;
+namespace dev\Sniffs\Classes;
 
 use PHP_CodeSniffer\Files\File;
 use PHP_CodeSniffer\Sniffs\Sniff;
@@ -75,7 +75,7 @@ class ClassInstantiationNoBracketsSniff implements Sniff
         // Found the pattern: (new ClassName(...))->something
         $error = 'Unnecessary parentheses around class instantiation; '
                . 'use "new ClassName()->member" instead of "(new ClassName())->member" (PHP 8.4+)';
-        $fix = $phpcsFile->addFixableError($error, $stackPtr, 'UnnecessaryParentheses');
+        $fix = $phpcsFile->addFixableError($error, $stackPtr, 'NewWithUnnecessaryParentheses');
 
         if ($fix === true) {
             $phpcsFile->fixer->beginChangeset();
