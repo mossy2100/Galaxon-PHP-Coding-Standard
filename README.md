@@ -13,6 +13,7 @@ This package provides a custom PHP_CodeSniffer coding standard for Galaxon PHP l
 **Key Features:**
 - Extends PSR-12 coding standard
 - Enforces `$lowerCamelCase` naming for variables, parameters, and properties
+- Enforces consistent array formatting with aligned arrows for associative arrays
 - Removes unnecessary parentheses around class instantiation (PHP 8.4+)
 - Automatic registration with PHP_CodeSniffer
 
@@ -66,6 +67,7 @@ The Galaxon coding standard extends PSR-12 and includes the following additional
 
 ### Galaxon Custom Sniffs
 
+- **Galaxon.Arrays.ArrayDeclaration**: Enforces consistent array formatting with arrow alignment for associative arrays
 - **Galaxon.Classes.ClassInstantiationNoBrackets**: Removes unnecessary parentheses around class instantiation when accessing members (PHP 8.4+)
 
 ### Squiz Sniffs
@@ -121,7 +123,6 @@ The Galaxon coding standard extends PSR-12 and includes the following additional
 - **DisallowContinueWithoutIntegerOperandInSwitch**: Disallows continue without integer operand in switch
 - **DisallowTrailingMultiLineTernaryOperator**: Requires leading operators in multi-line ternary expressions
 - **LanguageConstructWithParentheses**: Requires parentheses for language constructs
-- **NewWithParentheses**: Requires parentheses with new keyword
 - **RequireMultiLineCondition**: Requires multi-line format for long conditions with boolean operators
 - **RequireMultiLineTernaryOperator**: Requires multi-line format for long ternary operators
 - **RequireNullCoalesceEqualOperator**: Requires ??= operator when possible
@@ -239,10 +240,55 @@ This sniff is compliant with several PHP coding standards:
 2. Laravel requires `lowerCamelCase` ([unofficially](https://spatie.be/guidelines/laravel-php#content-general-php-rules)).
 3. Drupal variable names may use either `lowerCamelCase` or `lower_snake_case` ([ref](https://project.pages.drupalcode.org/coding_standards/php/coding/#functions-and-variables)), as long as one is consistent. Properties should use `lowerCamelCase`, and protected or private properties should not use an underscore prefix. ([ref](https://project.pages.drupalcode.org/coding_standards/php/coding/#classes-methods-and-properties)).
 
-Therefore, on the off chance any of the Galaxon packages are used in projects based on these frameworks, the code should be compliant.
+Therefore, if any of the Galaxon packages are used in projects based on these frameworks, the code should be compliant.
 
 
 ## Custom Sniffs
+
+### Galaxon.Arrays.ArrayDeclaration
+
+Enforces consistent array formatting based on array type:
+
+**Simple list arrays**: Single line if possible, no trailing comma.
+```php
+// Good
+$colors = ['red', 'green', 'blue'];
+
+// Bad
+$colors = [
+    'red',
+    'green',
+    'blue',
+];
+```
+
+**List of arrays**: One element per line, trailing comma required.
+```php
+// Good
+$points = [
+    [1, 2],
+    [3, 4],
+    [5, 6],
+];
+
+// Bad
+$points = [[1, 2], [3, 4], [5, 6]];
+```
+
+**Associative arrays**: One key-value pair per line, arrows aligned, trailing comma required.
+```php
+// Good
+$user = [
+    'name'  => 'John',
+    'email' => 'john@example.com',
+    'age'   => 30,
+];
+
+// Bad
+$user = ['name' => 'John', 'email' => 'john@example.com', 'age' => 30];
+```
+
+The sniff uses `mb_strlen()` for proper Unicode character support when aligning arrows.
 
 ### Galaxon.Classes.ClassInstantiationNoBrackets
 
