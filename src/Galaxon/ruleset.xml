@@ -23,6 +23,7 @@
     <rule ref="Squiz.Strings.DoubleQuoteUsage.NotRequired"/>
 
     <!-- Arrays -->
+    <rule ref="Galaxon.Arrays.ArrayDeclaration"/>
     <rule ref="SlevomatCodingStandard.Arrays.ArrayAccess"/>
     <rule ref="SlevomatCodingStandard.Arrays.DisallowImplicitArrayCreation"/>
     <rule ref="SlevomatCodingStandard.Arrays.DisallowPartiallyKeyed"/>

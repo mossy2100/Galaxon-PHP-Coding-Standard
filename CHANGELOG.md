@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-01-02
+
+### Added
+
+- Custom `Galaxon.Arrays.ArrayDeclaration` sniff for consistent array formatting:
+  - Simple list arrays: single line if possible, no trailing comma
+  - List of arrays: one element per line, trailing comma required
+  - Associative arrays: one key-value pair per line, arrows aligned, trailing comma required
+- Proper Unicode support using `mb_strlen()` for accurate arrow alignment with multibyte characters
+
 ## [0.2.0] - 2025-12-09
 
 ### Added
