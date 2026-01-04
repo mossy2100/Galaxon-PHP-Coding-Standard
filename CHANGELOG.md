@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-01-04
+
+### First Stable Release
+
+This is the first stable release of Galaxon Coding Standard, ready for publication on Packagist.
+
+### Changed
+
+- **composer.json** - Updated for Packagist publication:
+  - Added keywords for discoverability
+  - Added author information
+  - Added homepage and support URLs
+  - Improved description
+
 ## [0.3.0] - 2026-01-02
 
 ### Added

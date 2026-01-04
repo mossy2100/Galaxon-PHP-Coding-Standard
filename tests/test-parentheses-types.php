@@ -1,9 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Test;
 
 // Parentheses around new
-$a = (new DateTime())->format('Y-m-d');
+$a = new DateTime()->format('Y-m-d');
 
 // Parentheses around string
 $b = ('hello');

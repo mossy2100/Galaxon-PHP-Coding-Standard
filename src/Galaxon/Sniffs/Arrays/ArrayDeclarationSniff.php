@@ -90,7 +90,7 @@ class ArrayDeclarationSniff implements Sniff
      * @param File $phpcsFile The file being scanned.
      * @param int $stackPtr The position of the current token in the stack.
      */
-    public function process(File $phpcsFile, $stackPtr): void
+    public function process(File $phpcsFile, int $stackPtr): void
     {
         $this->initIgnoreTokens();
         $tokens = $phpcsFile->getTokens();
@@ -143,7 +143,11 @@ class ArrayDeclarationSniff implements Sniff
             // Track nesting depth.
             if ($code === T_OPEN_SHORT_ARRAY || $code === T_OPEN_PARENTHESIS || $code === T_OPEN_CURLY_BRACKET) {
                 $depth++;
-            } elseif ($code === T_CLOSE_SHORT_ARRAY || $code === T_CLOSE_PARENTHESIS || $code === T_CLOSE_CURLY_BRACKET) {
+            } elseif (
+                $code === T_CLOSE_SHORT_ARRAY
+                || $code === T_CLOSE_PARENTHESIS
+                || $code === T_CLOSE_CURLY_BRACKET
+            ) {
                 $depth--;
             }
 
@@ -226,7 +230,11 @@ class ArrayDeclarationSniff implements Sniff
             // Track nesting depth.
             if ($code === T_OPEN_SHORT_ARRAY || $code === T_OPEN_PARENTHESIS || $code === T_OPEN_CURLY_BRACKET) {
                 $depth++;
-            } elseif ($code === T_CLOSE_SHORT_ARRAY || $code === T_CLOSE_PARENTHESIS || $code === T_CLOSE_CURLY_BRACKET) {
+            } elseif (
+                $code === T_CLOSE_SHORT_ARRAY
+                || $code === T_CLOSE_PARENTHESIS
+                || $code === T_CLOSE_CURLY_BRACKET
+            ) {
                 $depth--;
             }
         }
@@ -367,11 +375,9 @@ class ArrayDeclarationSniff implements Sniff
                 $prevToken = $phpcsFile->findPrevious(T_WHITESPACE, $element['arrow'] - 1, $element['start'], true);
                 if ($prevToken !== false) {
                     $actualSpaces = $element['arrow'] - $prevToken - 1;
-                    if ($tokens[$prevToken + 1]['code'] === T_WHITESPACE) {
-                        $actualSpaces = strlen($tokens[$prevToken + 1]['content']);
-                    } else {
-                        $actualSpaces = 0;
-                    }
+                    $actualSpaces = $tokens[$prevToken + 1]['code'] === T_WHITESPACE
+                        ? strlen($tokens[$prevToken + 1]['content'])
+                        : 0;
 
                     if ($actualSpaces !== $expectedSpaces) {
                         $error = 'Array arrows should be aligned; expected %s space(s) before arrow, found %s.';
@@ -435,7 +441,11 @@ class ArrayDeclarationSniff implements Sniff
             // Track nesting depth.
             if ($code === T_OPEN_SHORT_ARRAY || $code === T_OPEN_PARENTHESIS || $code === T_OPEN_CURLY_BRACKET) {
                 $depth++;
-            } elseif ($code === T_CLOSE_SHORT_ARRAY || $code === T_CLOSE_PARENTHESIS || $code === T_CLOSE_CURLY_BRACKET) {
+            } elseif (
+                $code === T_CLOSE_SHORT_ARRAY
+                || $code === T_CLOSE_PARENTHESIS
+                || $code === T_CLOSE_CURLY_BRACKET
+            ) {
                 $depth--;
             }
 

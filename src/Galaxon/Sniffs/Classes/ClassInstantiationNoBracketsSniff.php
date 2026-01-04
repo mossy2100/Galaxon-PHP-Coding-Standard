@@ -22,7 +22,7 @@ class ClassInstantiationNoBracketsSniff implements Sniff
      *
      * @return array<int|string>
      */
-    public function register()
+    public function register(): array
     {
         return [T_OPEN_PARENTHESIS];
     }
@@ -34,7 +34,7 @@ class ClassInstantiationNoBracketsSniff implements Sniff
      * @param int  $stackPtr  The position of the current token in the stack passed in $tokens.
      * @return void
      */
-    public function process(File $phpcsFile, int $stackPtr)
+    public function process(File $phpcsFile, int $stackPtr): void
     {
         $tokens = $phpcsFile->getTokens();
 

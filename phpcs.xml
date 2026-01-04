@@ -4,7 +4,6 @@
 
     <!-- Paths to check -->
     <file>src</file>
-    <file>tests</file>
 
     <!-- Galaxon Coding Standard (includes PSR12 + custom rules) -->
     <rule ref="Galaxon"/>

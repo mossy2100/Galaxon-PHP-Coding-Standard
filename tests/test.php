@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Galaxon\CodingStandard\Tests;
 
 // Test 1: FQN without use statement (should trigger Slevomat)
@@ -9,7 +11,7 @@ $date = new \DateTime();
 $my_variable = 'test';
 
 // Test 3: Double quotes when not needed (should trigger Squiz). Auto-fixable.
-$string = "hello";
+$string = 'hello';
 
 // Test 4: Leading underscore variable (should trigger Squiz)
 $_private = 'value';
