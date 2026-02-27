@@ -2,16 +2,34 @@
 <ruleset name="Galaxon">
     <description>Galaxon PHP Coding Standard</description>
 
-    <!-- Inherit from PSR-12 -->
-    <rule ref="PSR12"/>
+    <!-- ====== PSR ====== -->
 
     <!-- Allow multiple classes in test files for test fixtures -->
     <rule ref="PSR1.Classes.ClassDeclaration.MultipleClasses">
         <exclude-pattern>tests/*</exclude-pattern>
     </rule>
 
-    <!-- Remove useless parentheses around new (PHP 8.4+) -->
-    <rule ref="Galaxon.Classes.ClassInstantiationNoBrackets"/>
+    <!-- Inherit from PSR-12 -->
+    <rule ref="PSR12">
+        <!-- Exclude PSR2 PropertyDeclaration - replaced by Galaxon version for PHP 8.4 property hook support -->
+        <exclude name="PSR2.Classes.PropertyDeclaration"/>
+        <!-- Exclude Generic ScopeIndent - replaced by Galaxon version for PHP 8.4 property hook support -->
+        <exclude name="Generic.WhiteSpace.ScopeIndent"/>
+    </rule>
+
+    <!-- ====== GENERIC ====== -->
+
+    <!-- Arrays -->
+    <rule ref="Generic.Arrays.DisallowLongArraySyntax"/>
+
+    <!-- Casting -->
+    <rule ref="Generic.Formatting.SpaceAfterCast">
+        <properties>
+            <property name="spacing" value="0" />
+        </properties>
+    </rule>
+
+    <!-- ====== SQUIZ ====== -->
 
     <!-- Variables and properties in lowerCamelCaps -->
     <rule ref="Squiz.NamingConventions.ValidVariableName">
@@ -22,8 +40,8 @@
     <!-- Ensure strings only use double quotes if necessary -->
     <rule ref="Squiz.Strings.DoubleQuoteUsage.NotRequired"/>
 
+    <!-- ====== SLEVOMAT ======  -->
     <!-- Arrays -->
-    <rule ref="Galaxon.Arrays.ArrayDeclaration"/>
     <rule ref="SlevomatCodingStandard.Arrays.ArrayAccess"/>
     <rule ref="SlevomatCodingStandard.Arrays.DisallowImplicitArrayCreation"/>
     <rule ref="SlevomatCodingStandard.Arrays.DisallowPartiallyKeyed"/>
@@ -231,5 +249,19 @@
     <rule ref="SlevomatCodingStandard.Variables.DisallowVariableVariable"/>
     <rule ref="SlevomatCodingStandard.Variables.DuplicateAssignmentToVariable"/>
     <rule ref="SlevomatCodingStandard.Variables.UselessVariable"/>
+
+    <!-- ===== GALAXON ====== -->
+
+    <!-- Array formatting with aligned arrows for associative arrays -->
+    <rule ref="Galaxon.Arrays.ArrayDeclaration"/>
+
+    <!-- Scope indent with PHP 8.4 property hook support -->
+    <rule ref="Galaxon.WhiteSpace.ScopeIndent"/>
+
+    <!-- Property declaration with PHP 8.4 property hook support -->
+    <rule ref="Galaxon.Classes.PropertyDeclaration"/>
+
+    <!-- Remove useless parentheses around new (PHP 8.4+) -->
+    <rule ref="Galaxon.Classes.ClassInstantiationNoBrackets"/>
 
 </ruleset>

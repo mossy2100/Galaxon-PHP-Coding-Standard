@@ -287,6 +287,9 @@ class ArrayDeclarationSniff implements Sniff
                 if ($fix === true) {
                     $phpcsFile->fixer->addContentBefore($element['start'], "\n" . str_repeat(' ', $elementIndent));
                 }
+            } else {
+                // Element is on its own line - check indentation.
+                $this->checkIndent($phpcsFile, $element['start'], $elementIndent, 'ListOfArraysElementIndent');
             }
 
             $prevElementLine = $elementLine;
@@ -303,6 +306,8 @@ class ArrayDeclarationSniff implements Sniff
             if ($fix === true) {
                 $phpcsFile->fixer->addContentBefore($closePtr, "\n" . str_repeat(' ', $baseIndent));
             }
+        } else {
+            $this->checkIndent($phpcsFile, $closePtr, $baseIndent, 'ListOfArraysClosingBracketIndent');
         }
     }
 
@@ -362,6 +367,9 @@ class ArrayDeclarationSniff implements Sniff
                 if ($fix === true) {
                     $phpcsFile->fixer->addContentBefore($element['start'], "\n" . str_repeat(' ', $elementIndent));
                 }
+            } else {
+                // Element is on its own line - check indentation.
+                $this->checkIndent($phpcsFile, $element['start'], $elementIndent, 'AssocElementIndent');
             }
 
             $prevElementLine = $elementLine;
@@ -395,6 +403,23 @@ class ArrayDeclarationSniff implements Sniff
                         }
                     }
                 }
+
+                // Check that the value starts on the same line as the arrow.
+                $valueStart = $phpcsFile->findNext(T_WHITESPACE, $element['arrow'] + 1, null, true);
+                if ($valueStart !== false && $tokens[$valueStart]['line'] !== $tokens[$element['arrow']]['line']) {
+                    $error = 'Array value should be on the same line as the double arrow.';
+                    $fix = $phpcsFile->addFixableError($error, $valueStart, 'AssocValueNotOnArrowLine');
+                    if ($fix === true) {
+                        $phpcsFile->fixer->beginChangeset();
+                        // Remove all tokens between the arrow and the value.
+                        for ($j = $element['arrow'] + 1; $j < $valueStart; $j++) {
+                            $phpcsFile->fixer->replaceToken($j, '');
+                        }
+                        // Add a single space after the arrow.
+                        $phpcsFile->fixer->addContent($element['arrow'], ' ');
+                        $phpcsFile->fixer->endChangeset();
+                    }
+                }
             }
         }
 
@@ -409,6 +434,8 @@ class ArrayDeclarationSniff implements Sniff
             if ($fix === true) {
                 $phpcsFile->fixer->addContentBefore($closePtr, "\n" . str_repeat(' ', $baseIndent));
             }
+        } else {
+            $this->checkIndent($phpcsFile, $closePtr, $baseIndent, 'AssocClosingBracketIndent');
         }
     }
 
@@ -586,6 +613,33 @@ class ArrayDeclarationSniff implements Sniff
         }
 
         return $content;
+    }
+
+    /**
+     * Check that a token has the expected indentation, and fix if not.
+     */
+    private function checkIndent(File $phpcsFile, int $tokenPtr, int $expectedIndent, string $errorCode): void
+    {
+        $tokens = $phpcsFile->getTokens();
+        $actualIndent = $tokens[$tokenPtr]['column'] - 1;
+
+        if ($actualIndent === $expectedIndent) {
+            return;
+        }
+
+        $error = 'Array element indented incorrectly; expected %s space(s), found %s.';
+        $data = [$expectedIndent, $actualIndent];
+        $fix = $phpcsFile->addFixableError($error, $tokenPtr, $errorCode, $data);
+        if ($fix === true) {
+            $padding = str_repeat(' ', $expectedIndent);
+            if ($tokens[$tokenPtr]['column'] === 1) {
+                // Token is at column 1; prepend the padding to the token content.
+                $phpcsFile->fixer->replaceToken($tokenPtr, $padding . $tokens[$tokenPtr]['content']);
+            } else {
+                // Replace the whitespace token before this token.
+                $phpcsFile->fixer->replaceToken($tokenPtr - 1, $padding);
+            }
+        }
     }
 
     /**

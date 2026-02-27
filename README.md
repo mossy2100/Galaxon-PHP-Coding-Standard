@@ -64,11 +64,20 @@ The Galaxon coding standard extends PSR-12 and includes the following additional
 ### Base Standard
 
 - **PSR12**: Complete PSR-12 coding standard (with exception for multiple classes in test files)
+  - `PSR2.Classes.PropertyDeclaration` excluded — replaced by `Galaxon.Classes.PropertyDeclaration` for PHP 8.4 property hook support
+  - `Generic.WhiteSpace.ScopeIndent` excluded — replaced by `Galaxon.WhiteSpace.ScopeIndent` for PHP 8.4 property hook support
 
 ### Galaxon Custom Sniffs
 
 - **Galaxon.Arrays.ArrayDeclaration**: Enforces consistent array formatting with arrow alignment for associative arrays
 - **Galaxon.Classes.ClassInstantiationNoBrackets**: Removes unnecessary parentheses around class instantiation when accessing members (PHP 8.4+)
+- **Galaxon.Classes.PropertyDeclaration**: Verifies property declarations, with PHP 8.4 property hook support
+- **Galaxon.WhiteSpace.ScopeIndent**: Checks that control structures and code are indented correctly, with PHP 8.4 property hook support
+
+### Generic Sniffs
+
+- **Generic.Arrays.DisallowLongArraySyntax**: Requires short array syntax `[]` instead of `array()`
+- **Generic.Formatting.SpaceAfterCast**: Enforces no space after type casts (e.g. `(int)$value`)
 
 ### Squiz Sniffs
 
@@ -288,7 +297,7 @@ $user = [
 $user = ['name' => 'John', 'email' => 'john@example.com', 'age' => 30];
 ```
 
-The sniff uses `mb_strlen()` for proper Unicode character support when aligning arrows.
+Array indentation is enforced at 4 spaces per nesting level (currently non-configurable). The sniff uses `mb_strlen()` for proper Unicode character support when aligning arrows. Values in associative arrays must start on the same line as the double arrow.
 
 ### Galaxon.Classes.ClassInstantiationNoBrackets
 
@@ -308,6 +317,37 @@ new Bar()->property;
 (new DateTime())->format('Y-m-d');  // Unnecessary parentheses
 (new Foo())->method();              // Unnecessary parentheses
 (new Bar())->property;              // Unnecessary parentheses
+```
+
+### Galaxon.Classes.PropertyDeclaration
+
+Verifies that properties are declared correctly. This is a replacement for `PSR2.Classes.PropertyDeclaration` that properly handles PHP 8.4 property hooks.
+
+**Improvements over the PSR2 version:**
+- Variables inside property hook bodies (e.g. `$this`, `$value`, local variables) are correctly ignored as non-property declarations.
+- Properties with hooks end with a closing brace `}`, not a semicolon `;`, and are handled correctly.
+- Supports PHP 8.4 asymmetric visibility (`public private(set)`), enforcing that read-visibility comes before write-visibility.
+- Enforces correct ordering of modifiers: `abstract`/`final` before visibility, `static`/`readonly` after visibility.
+
+### Galaxon.WhiteSpace.ScopeIndent
+
+Checks that control structures and code are indented correctly. This is a fork of `Generic.WhiteSpace.ScopeIndent` with PHP 8.4 property hook support.
+
+PHP_CodeSniffer's tokenizer does not recognise property hook braces as scope openers/closers, so the built-in `ScopeIndent` sniff cannot track their indentation. This sniff builds a map of property hook scopes (both the hook container `{ get ... set ... }` and individual hook bodies `get { ... }`) and tracks them alongside the standard scope stack.
+
+**Good:**
+```php
+class User
+{
+    public string $name {
+        get {
+            return $this->name;
+        }
+        set {
+            $this->name = trim($value);
+        }
+    }
+}
 ```
 
 ## License
