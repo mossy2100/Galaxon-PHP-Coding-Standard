@@ -89,7 +89,7 @@ Links:
 
 ### Squiz Sniffs
 
-- **Squiz.NamingConventions.ValidVariableName**: Enforces lowerCamelCase for variables, parameters, and properties
+- **Squiz.NamingConventions.ValidVariableName**: Enforces `$lowerCamelCase` for variables, parameters, and properties
 - **Squiz.Strings.DoubleQuoteUsage.NotRequired**: Ensures strings use single quotes unless double quotes are necessary
 
 ### Slevomat Sniffs
@@ -254,9 +254,9 @@ Once upon a time, the convention was to use `$lower_snake_case` for variable nam
 Similarly, using an underscore prefix to indicate protected or private visibility was common practice in PHP until use of visibility modifiers became the standard. And now, the use of an underscore prefix is generally discouraged or disallowed.
 
 This sniff is compliant with several PHP coding standards:
-1. Symfony requires `lowerCamelCase` ([ref](https://symfony.com/doc/current/contributing/code/standards.html#naming-conventions)).
-2. Laravel requires `lowerCamelCase` ([unofficially](https://spatie.be/guidelines/laravel-php#content-general-php-rules)).
-3. Drupal variable names may use either `lowerCamelCase` or `lower_snake_case` ([ref](https://project.pages.drupalcode.org/coding_standards/php/coding/#functions-and-variables)), as long as one is consistent. Properties should use `lowerCamelCase`, and protected or private properties should not use an underscore prefix. ([ref](https://project.pages.drupalcode.org/coding_standards/php/coding/#classes-methods-and-properties)).
+1. Symfony requires `$lowerCamelCase` ([ref](https://symfony.com/doc/current/contributing/code/standards.html#naming-conventions)).
+2. Laravel requires `$lowerCamelCase` ([unofficially](https://spatie.be/guidelines/laravel-php#content-general-php-rules)).
+3. Drupal variable names may use either `$lowerCamelCase` or `$lower_snake_case` ([ref](https://project.pages.drupalcode.org/coding_standards/php/coding/#functions-and-variables)), as long as one is consistent. Properties should use `$lowerCamelCase`, and protected or private properties should not use an underscore prefix. ([ref](https://project.pages.drupalcode.org/coding_standards/php/coding/#classes-methods-and-properties)).
 
 Therefore, if any of the Galaxon packages are used in projects based on these frameworks, the code should be compliant.
 
