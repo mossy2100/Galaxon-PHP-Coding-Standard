@@ -25,7 +25,7 @@ The package provides several custom sniffs to cover gaps in the available standa
 - **Galaxon.Classes.PropertyDeclaration**: Verifies property declarations, with PHP 8.4 property hook support
 - **Galaxon.WhiteSpace.ScopeIndent**: Checks that control structures and code are indented correctly, with PHP 8.4 property hook support
 
-See [[#Custom Sniffs]] for more details.
+See [Custom Sniffs](#custom-sniffs) for more details.
 
 ## Development and Quality Assurance / AI Disclosure
 
@@ -266,11 +266,11 @@ Therefore, if any of the Galaxon packages are used in projects based on these fr
 
 Enforces consistent array formatting based on array type. The sniff differentiates between *lists* (no array keys appearing in the code), and *associative arrays* (at least one key appearing in the code). Technically, a list in PHP is any array with sequential integer keys starting from 0, but since we don't want to remove keys if they exist in the code, we treat any array with keys as an associative array and format it as such.
 
-The format is chosen automatically based on array type and content: simple scalar lists (i.e. lists containing only nulls and integer, float, boolean, and string literals) use single-line when they fit and grid format when they don't. Non-scalar lists, lists of arrays, and associative arrays are formatted with one item per line.
+The format is chosen automatically based on array type and content: simple scalar lists (i.e. lists containing only null, integer, float, boolean, and/or string literals) use a compact single-line format when they fit, and grid format when they don't. Non-scalar lists and associative arrays are formatted with one item per line.
 
-Array indentation is enforced at 4 spaces per nesting level. The sniff uses `mb_strlen()` for proper Unicode character support when aligning arrows and grid padding. Values in associative arrays must start on the same line as the double arrow.
+Array indentation defaults to 4 spaces per nesting level; this is configurable. The sniff uses `mb_strlen()` for proper Unicode character support when aligning arrows and grid padding. Values in associative arrays must start on the same line as the double arrow.
 
-**Scalar list arrays**: Single line when they fit, no trailing comma.
+**Scalar lists**: A compact, single-line format (no trailing comma) is used when the result won't overflow the maximum line length.
 ```php
 // Good
 $colors = ['red', 'green', 'blue'];
@@ -283,7 +283,7 @@ $colors = [
 ];
 ```
 
-**Grid format**: Lists of scalar literals too long for a single line are arranged in a grid with uniform padding.
+**Grid format**: Lists of scalar literals too long for a single line are arranged in a grid with uniform padding. A trailing comma is included.
 ```php
 // Good
 $colors = [
@@ -293,7 +293,7 @@ $colors = [
 ];
 ```
 
-**One per line**: Non-scalar lists (containing function calls, expressions, etc.) always use one element per line with a trailing comma.
+**One per line**: Non-scalar lists (i.e. containing function calls, expressions, enums, objects, etc.) always use one element per line with a trailing comma.
 ```php
 // Good
 $results = [
@@ -328,6 +328,22 @@ $user = [
 
 // Bad
 $user = ['name' => 'John', 'email' => 'john@example.com', 'age' => 30];
+```
+
+**Configuration:**
+
+| Property        | Type | Default | Description                                                         |
+| --------------- | ---- | ------- | ------------------------------------------------------------------- |
+| `maxLineLength` | int  | 120     | Maximum line length before wrapping to grid or one-per-line format. |
+| `indent`        | int  | 4       | Number of spaces to indent array elements.                          |
+
+```xml
+<rule ref="Galaxon.Arrays.ArrayDeclaration">
+    <properties>
+        <property name="maxLineLength" value="100"/>
+        <property name="indent" value="2"/>
+    </properties>
+</rule>
 ```
 
 ### Galaxon.Classes.ClassInstantiationNoBrackets
@@ -379,6 +395,20 @@ class User
         }
     }
 }
+```
+
+**Configuration:**
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `indent` | int | 4 | Number of spaces per indentation level. |
+
+```xml
+<rule ref="Galaxon.WhiteSpace.ScopeIndent">
+    <properties>
+        <property name="indent" value="2"/>
+    </properties>
+</rule>
 ```
 
 ## License
