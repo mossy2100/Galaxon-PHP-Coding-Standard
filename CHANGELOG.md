@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-03-01
+
+### Added
+
+- **Grid format** for scalar list arrays too long for a single line — items arranged in uniformly padded rows.
+- **One-per-line format** for non-scalar list arrays — function calls, expressions, etc. always formatted one element per line with trailing comma, regardless of length.
+- **Unit tests** for all four custom Galaxon sniffs:
+  - `Galaxon.Arrays.ArrayDeclaration` — covers scalar lists, grid format, one-per-line, list-of-arrays, associative arrays, mixed keyed/unkeyed, and explicit sequential integer keys.
+  - `Galaxon.Classes.ClassInstantiationNoBrackets` — covers method calls, property access, nullsafe, constructor args, chained calls.
+  - `Galaxon.Classes.PropertyDeclaration` — covers hooks, asymmetric visibility, modifier ordering, var keyword, underscore warning.
+  - `Galaxon.WhiteSpace.ScopeIndent` — covers PHP 8.4 property hook indentation.
+- PHPUnit configuration (`phpunit.xml.dist`) and test bootstrap.
+
+### Changed
+
+- `Galaxon.Arrays.ArrayDeclaration` sniff rewritten with format-selection logic: scalar lists use single-line or grid; non-scalar lists and associative arrays use one-per-line.
+- README updated with documentation for all array formats, links to upstream standard documentation (PSR-12, Generic, Squiz, Slevomat), and improved descriptions.
+
+### Fixed
+
+- `Galaxon.Classes.ClassInstantiationNoBrackets` namespace corrected from `dev\Sniffs\Classes` to `Galaxon\Sniffs\Classes`.
+- Trailing whitespace in `Core\Stringify::stringifyList()` grid format — last item on each row no longer padded.
+
+### Removed
+
+- Old manual test fixtures in `tests/` directory (replaced by proper PHPUnit-based unit tests in `src/Galaxon/Tests/`).
+
 ## [1.0.0] - 2026-01-04
 
 ### First Stable Release

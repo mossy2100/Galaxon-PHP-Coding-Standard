@@ -1,0 +1,95 @@
+<?php
+
+// === VALID: Standard indentation ===
+
+class StandardIndent
+{
+    public string $name = 'foo';
+
+    public function method(): string
+    {
+        if (true) {
+            return 'yes';
+        } else {
+            return 'no';
+        }
+    }
+
+    public function loops(): void
+    {
+        for ($i = 0; $i < 10; $i++) {
+            echo $i;
+        }
+
+        foreach ([1, 2, 3] as $item) {
+            echo $item;
+        }
+
+        while (false) {
+            break;
+        }
+    }
+
+    public function switchCase(): string
+    {
+        return match (true) {
+            true => 'yes',
+            false => 'no',
+        };
+    }
+}
+
+// === VALID: Property hooks with correct indentation ===
+
+class ValidHookIndent
+{
+    public string $arrowHook {
+        get => 'value';
+    }
+
+    public string $blockHook {
+        get {
+            return 'value';
+        }
+        set {
+            $this->blockHook = $value;
+        }
+    }
+
+    public string $complexHook {
+        get {
+            if (true) {
+                return 'nested';
+            }
+            return 'default';
+        }
+        set {
+            foreach (['a', 'b'] as $item) {
+                echo $item;
+            }
+            $this->complexHook = $value;
+        }
+    }
+
+    public string $withDefault = 'default' {
+        get => $this->withDefault;
+        set => $this->withDefault = $value;
+    }
+
+    public string $afterHooks = 'still correct';
+}
+
+// === ERRORS: Property hooks with wrong indentation ===
+
+class ErrorHookIndent
+{
+    // Incorrect: hook body under-indented.
+    public string $underIndent {
+        get {
+        return 'value';
+        }
+    }
+
+    // Incorrect: code after hooks over-indented (exact check after closer).
+        public string $afterHooksWrong = 'bad';
+}

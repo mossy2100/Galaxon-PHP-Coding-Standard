@@ -13,9 +13,19 @@ This package provides a custom PHP_CodeSniffer coding standard for Galaxon PHP l
 **Key Features:**
 - Extends PSR-12 coding standard
 - Enforces `$lowerCamelCase` naming for variables, parameters, and properties
-- Enforces consistent array formatting with aligned arrows for associative arrays
+- Enforces consistent array formatting: single-line, grid, one-per-line, and associative with aligned arrows
 - Removes unnecessary parentheses around class instantiation (PHP 8.4+)
+- Enforces correct indentation for property hooks
 - Automatic registration with PHP_CodeSniffer
+
+The package provides several custom sniffs to cover gaps in the available standards. These include:
+
+- **Galaxon.Arrays.ArrayDeclaration**: Enforces consistent array formatting with lists and associative arrays
+- **Galaxon.Classes.ClassInstantiationNoBrackets**: Removes unnecessary parentheses around class instantiation when accessing members (PHP 8.4+)
+- **Galaxon.Classes.PropertyDeclaration**: Verifies property declarations, with PHP 8.4 property hook support
+- **Galaxon.WhiteSpace.ScopeIndent**: Checks that control structures and code are indented correctly, with PHP 8.4 property hook support
+
+See [[#Custom Sniffs]] for more details.
 
 ## Development and Quality Assurance / AI Disclosure
 
@@ -59,20 +69,18 @@ vendor/bin/phpcbf       # Auto-fix issues
 
 ## Included Sniffs
 
-The Galaxon coding standard extends PSR-12 and includes the following additional sniffs:
+The Galaxon coding standard extends PSR-12 and includes the following additional sniffs.
+
+Links:
+* [PSR-12 standard](https://www.php-fig.org/psr/psr-12/)
+* PHP_CodeSniffer provides the PSR-12, Generic, and Squiz sniffs. Documentation is found in the [repository](https://github.com/PHPCSStandards/PHP_CodeSniffer) and [wiki](https://github.com/PHPCSStandards/PHP_CodeSniffer/wiki)
+* [Slevomat coding standard repository and documentation](https://github.com/slevomat/coding-standard)
 
 ### Base Standard
 
-- **PSR12**: Complete PSR-12 coding standard (with exception for multiple classes in test files)
-  - `PSR2.Classes.PropertyDeclaration` excluded — replaced by `Galaxon.Classes.PropertyDeclaration` for PHP 8.4 property hook support
-  - `Generic.WhiteSpace.ScopeIndent` excluded — replaced by `Galaxon.WhiteSpace.ScopeIndent` for PHP 8.4 property hook support
-
-### Galaxon Custom Sniffs
-
-- **Galaxon.Arrays.ArrayDeclaration**: Enforces consistent array formatting with arrow alignment for associative arrays
-- **Galaxon.Classes.ClassInstantiationNoBrackets**: Removes unnecessary parentheses around class instantiation when accessing members (PHP 8.4+)
-- **Galaxon.Classes.PropertyDeclaration**: Verifies property declarations, with PHP 8.4 property hook support
-- **Galaxon.WhiteSpace.ScopeIndent**: Checks that control structures and code are indented correctly, with PHP 8.4 property hook support
+- **PSR-12**: Complete PSR-12 coding standard (with exception for multiple classes in test files)
+  - `PSR2.Classes.PropertyDeclaration` excluded — replaced by `Galaxon.Classes.PropertyDeclaration` for PHP 8.4 property hook support (see [Custom Sniffs](#custom-sniffs))
+  - `Generic.WhiteSpace.ScopeIndent` excluded — replaced by `Galaxon.WhiteSpace.ScopeIndent` for PHP 8.4 property hook support (see [Custom Sniffs](#custom-sniffs))
 
 ### Generic Sniffs
 
@@ -210,7 +218,7 @@ The Galaxon coding standard extends PSR-12 and includes the following additional
 - **ClassConstantTypeHint**: Requires class constant type hints
 
 #### Variables
-- **DisallowVariableVariable**: Disallows variable variables ($$var)
+- **DisallowVariableVariable**: Disallows variable variables (\$$var)
 - **DuplicateAssignmentToVariable**: Disallows duplicate assignments to the same variable
 - **UselessVariable**: Disallows useless variables
 
@@ -238,9 +246,10 @@ PSR-12 and PER 3.0 do not mandate variable naming conventions. Specifically, fro
 > Whatever naming convention is used SHOULD be applied consistently within a reasonable scope. That scope may be vendor-level, package-level, class-level, or method-level.
 
 In addition, from [PER Coding Style 3.0 Section 4.3 "Properties and Constants"](https://www.php-fig.org/per/coding-style/#43-properties-and-constants):
+
 > Property or constant names MUST NOT be prefixed with a single underscore to indicate protected or private visibility. That is, an underscore prefix explicitly has no meaning.
 
-Once upon a time, the convention was to use `lower_snake_case` for variable names and properties; however, as the object-oriented features of PHP evolved, it became more common to use `lowerCamelCase`, following the coding convention from Java. AI-generated code typically uses `lowerCamelCase`, which is indicative of the trend. Therefore, given the requirement to be consistent, this sniff enforces the use of `lowerCamelCase` for all variables, class properties, and function parameters.
+Once upon a time, the convention was to use `$lower_snake_case` for variable names and properties; however, as the object-oriented features of PHP evolved, it became more common to use `$lowerCamelCase`, following the coding convention from Java. AI-generated code typically uses `$lowerCamelCase`, which is indicative of the trend. Therefore, given the requirement to be consistent, this sniff enforces the use of `$lowerCamelCase` for all variables, class properties, and function parameters.
 
 Similarly, using an underscore prefix to indicate protected or private visibility was common practice in PHP until use of visibility modifiers became the standard. And now, the use of an underscore prefix is generally discouraged or disallowed.
 
@@ -251,14 +260,17 @@ This sniff is compliant with several PHP coding standards:
 
 Therefore, if any of the Galaxon packages are used in projects based on these frameworks, the code should be compliant.
 
-
 ## Custom Sniffs
 
 ### Galaxon.Arrays.ArrayDeclaration
 
-Enforces consistent array formatting based on array type:
+Enforces consistent array formatting based on array type. The sniff differentiates between *lists* (no array keys appearing in the code), and *associative arrays* (at least one key appearing in the code). Technically, a list in PHP is any array with sequential integer keys starting from 0, but since we don't want to remove keys if they exist in the code, we treat any array with keys as an associative array and format it as such.
 
-**Simple list arrays**: Single line if possible, no trailing comma.
+The format is chosen automatically based on array type and content: simple scalar lists (i.e. lists containing only nulls and integer, float, boolean, and string literals) use single-line when they fit and grid format when they don't. Non-scalar lists, lists of arrays, and associative arrays are formatted with one item per line.
+
+Array indentation is enforced at 4 spaces per nesting level. The sniff uses `mb_strlen()` for proper Unicode character support when aligning arrows and grid padding. Values in associative arrays must start on the same line as the double arrow.
+
+**Scalar list arrays**: Single line when they fit, no trailing comma.
 ```php
 // Good
 $colors = ['red', 'green', 'blue'];
@@ -268,6 +280,27 @@ $colors = [
     'red',
     'green',
     'blue',
+];
+```
+
+**Grid format**: Lists of scalar literals too long for a single line are arranged in a grid with uniform padding.
+```php
+// Good
+$colors = [
+    'red',     'green',   'blue',    'cyan',    'magenta', 'yellow',
+    'black',   'white',   'orange',  'purple',  'brown',   'pink',
+    'grey',    'navy',    'teal',
+];
+```
+
+**One per line**: Non-scalar lists (containing function calls, expressions, etc.) always use one element per line with a trailing comma.
+```php
+// Good
+$results = [
+    strtoupper('red'),
+    strtolower('GREEN'),
+    trim('  blue  '),
+    substr('yellow', 0, 3),
 ];
 ```
 
@@ -296,8 +329,6 @@ $user = [
 // Bad
 $user = ['name' => 'John', 'email' => 'john@example.com', 'age' => 30];
 ```
-
-Array indentation is enforced at 4 spaces per nesting level (currently non-configurable). The sniff uses `mb_strlen()` for proper Unicode character support when aligning arrows. Values in associative arrays must start on the same line as the double arrow.
 
 ### Galaxon.Classes.ClassInstantiationNoBrackets
 

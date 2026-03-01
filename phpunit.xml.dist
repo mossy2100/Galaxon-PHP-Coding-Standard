@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<phpunit
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+    bootstrap="src/Galaxon/Tests/bootstrap.php"
+    colors="true"
+    beStrictAboutTestsThatDoNotTestAnything="false"
+    failOnWarning="true"
+>
+    <testsuites>
+        <testsuite name="Galaxon Sniff Tests">
+            <directory suffix="UnitTest.php">src/Galaxon/Tests</directory>
+        </testsuite>
+    </testsuites>
+</phpunit>

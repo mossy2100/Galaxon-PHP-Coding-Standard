@@ -5,8 +5,10 @@
  *
  * Rules:
  * 1. Simple list arrays (no keys, no nested arrays): single line if possible, no trailing comma.
- * 2. List of arrays: one element per line, trailing comma required.
- * 3. Associative arrays: one key-value pair per line, arrows aligned, 4-space indent, trailing comma required.
+ * 2. Scalar list arrays too long for one line: grid format with uniform padding, trailing comma on all items.
+ * 3. Non-scalar list arrays too long for one line: one element per line, trailing comma required.
+ * 4. List of arrays: one element per line, trailing comma required.
+ * 5. Associative arrays: one key-value pair per line, arrows aligned, 4-space indent, trailing comma required.
  */
 
 declare(strict_types=1);
@@ -173,42 +175,65 @@ class ArrayDeclarationSniff implements Sniff
 
         $tokens = $phpcsFile->getTokens();
 
-        // Check for and remove trailing comma.
-        $lastContent = $phpcsFile->findPrevious($this->ignoreTokens, $closePtr - 1, $openPtr, true);
-        if ($lastContent !== false && $tokens[$lastContent]['code'] === T_COMMA) {
-            $error = 'Simple list arrays should not have a trailing comma.';
-            $fix = $phpcsFile->addFixableError($error, $lastContent, 'ListTrailingComma');
-            if ($fix === true) {
-                $phpcsFile->fixer->replaceToken($lastContent, '');
-            }
-        }
-
-        // Check if array fits on one line.
-        $openLine = $tokens[$openPtr]['line'];
-        $closeLine = $tokens[$closePtr]['line'];
-
-        if ($openLine === $closeLine) {
-            // Already on one line - check if it's within line length.
-            $lineLength = $tokens[$closePtr]['column'] + mb_strlen($tokens[$closePtr]['content']);
-            if ($lineLength <= $this->maxLineLength) {
-                return; // All good.
-            }
-        }
-
-        // If multi-line, check if it could fit on one line.
+        // Build single-line content and measure total length.
         $singleLineContent = $this->buildSingleLineArray($phpcsFile, $openPtr, $closePtr);
         $lineStart = $this->findLineStart($phpcsFile, $openPtr);
         $prefix = $this->getContentBefore($phpcsFile, $lineStart, $openPtr);
         $totalLength = mb_strlen($prefix) + mb_strlen($singleLineContent);
 
-        if ($totalLength <= $this->maxLineLength && $openLine !== $closeLine) {
-            // Can fit on one line but isn't - suggest fix.
+        $openLine = $tokens[$openPtr]['line'];
+        $closeLine = $tokens[$closePtr]['line'];
+
+        $elements = $this->getArrayElements($phpcsFile, $openPtr, $closePtr);
+        if (empty($elements)) {
+            return;
+        }
+
+        $allScalar = $this->isAllScalarElements($phpcsFile, $elements);
+
+        // Target: single line (only for all-scalar lists that fit).
+        if ($allScalar && $totalLength <= $this->maxLineLength) {
+            // Remove trailing comma — single-line lists don't have one.
+            $this->checkListTrailingComma($phpcsFile, $openPtr, $closePtr, false);
+
+            if ($openLine === $closeLine) {
+                return; // Already single-line and fits.
+            }
+
+            // Multi-line but fits on one line — fix it.
             $error = 'Simple list array should be on a single line when it fits within line length.';
             $fix = $phpcsFile->addFixableError($error, $openPtr, 'ListShouldBeSingleLine');
             if ($fix === true) {
                 $this->fixToSingleLine($phpcsFile, $openPtr, $closePtr, $singleLineContent);
             }
+            return;
         }
+
+        // Non-scalar or too long — check grid eligibility.
+        $baseIndent = $this->getBaseIndent($phpcsFile, $openPtr);
+
+        if ($this->isAllScalarElements($phpcsFile, $elements)) {
+            $elementIndentSpaces = $baseIndent + $this->indent;
+            $maxValueWidth = $this->getMaxElementWidth($phpcsFile, $elements);
+            $itemsPerLine = (int)floor(($this->maxLineLength + 1 - $elementIndentSpaces) / ($maxValueWidth + 2));
+
+            if ($itemsPerLine > 1) {
+                // Target: grid format.
+                $this->processGridArray(
+                    $phpcsFile,
+                    $openPtr,
+                    $closePtr,
+                    $elements,
+                    $baseIndent,
+                    $maxValueWidth,
+                    $itemsPerLine
+                );
+                return;
+            }
+        }
+
+        // Target: one per line.
+        $this->processOnePerLineArray($phpcsFile, $openPtr, $closePtr, $elements, $baseIndent);
     }
 
     /**
@@ -278,14 +303,14 @@ class ArrayDeclarationSniff implements Sniff
                 $error = 'First element of list of arrays should be on a new line.';
                 $fix = $phpcsFile->addFixableError($error, $element['start'], 'ListOfArraysFirstElementNewLine');
                 if ($fix === true) {
-                    $phpcsFile->fixer->addContentBefore($element['start'], "\n" . str_repeat(' ', $elementIndent));
+                    $this->fixNewLineBefore($phpcsFile, $openPtr, $element['start'], $elementIndent);
                 }
             } elseif ($index > 0 && $elementLine === $prevElementLine) {
                 // Each subsequent element should be on its own line.
                 $error = 'Each element in list of arrays should be on its own line.';
                 $fix = $phpcsFile->addFixableError($error, $element['start'], 'ListOfArraysElementNewLine');
                 if ($fix === true) {
-                    $phpcsFile->fixer->addContentBefore($element['start'], "\n" . str_repeat(' ', $elementIndent));
+                    $this->fixNewLineBefore($phpcsFile, $openPtr, $element['start'], $elementIndent);
                 }
             } else {
                 // Element is on its own line - check indentation.
@@ -304,7 +329,7 @@ class ArrayDeclarationSniff implements Sniff
             $error = 'Closing bracket of list of arrays should be on a new line.';
             $fix = $phpcsFile->addFixableError($error, $closePtr, 'ListOfArraysClosingBracketNewLine');
             if ($fix === true) {
-                $phpcsFile->fixer->addContentBefore($closePtr, "\n" . str_repeat(' ', $baseIndent));
+                $this->fixNewLineBefore($phpcsFile, $openPtr, $closePtr, $baseIndent);
             }
         } else {
             $this->checkIndent($phpcsFile, $closePtr, $baseIndent, 'ListOfArraysClosingBracketIndent');
@@ -358,14 +383,14 @@ class ArrayDeclarationSniff implements Sniff
                 $error = 'First element of associative array should be on a new line.';
                 $fix = $phpcsFile->addFixableError($error, $element['start'], 'AssocFirstElementNewLine');
                 if ($fix === true) {
-                    $phpcsFile->fixer->addContentBefore($element['start'], "\n" . str_repeat(' ', $elementIndent));
+                    $this->fixNewLineBefore($phpcsFile, $openPtr, $element['start'], $elementIndent);
                 }
             } elseif ($index > 0 && $elementLine === $prevElementLine) {
                 // Each subsequent element should be on its own line.
                 $error = 'Each element in associative array should be on its own line.';
                 $fix = $phpcsFile->addFixableError($error, $element['start'], 'AssocElementNewLine');
                 if ($fix === true) {
-                    $phpcsFile->fixer->addContentBefore($element['start'], "\n" . str_repeat(' ', $elementIndent));
+                    $this->fixNewLineBefore($phpcsFile, $openPtr, $element['start'], $elementIndent);
                 }
             } else {
                 // Element is on its own line - check indentation.
@@ -432,7 +457,7 @@ class ArrayDeclarationSniff implements Sniff
             $error = 'Closing bracket of associative array should be on a new line.';
             $fix = $phpcsFile->addFixableError($error, $closePtr, 'AssocClosingBracketNewLine');
             if ($fix === true) {
-                $phpcsFile->fixer->addContentBefore($closePtr, "\n" . str_repeat(' ', $baseIndent));
+                $this->fixNewLineBefore($phpcsFile, $openPtr, $closePtr, $baseIndent);
             }
         } else {
             $this->checkIndent($phpcsFile, $closePtr, $baseIndent, 'AssocClosingBracketIndent');
@@ -558,7 +583,7 @@ class ArrayDeclarationSniff implements Sniff
     {
         $tokens = $phpcsFile->getTokens();
         $content = $tokens[$openPtr]['content'];
-        $lastWasWhitespace = false;
+        $lastWasWhitespace = true;
 
         for ($i = $openPtr + 1; $i < $closePtr; $i++) {
             $tokenContent = $tokens[$i]['content'];
@@ -643,6 +668,38 @@ class ArrayDeclarationSniff implements Sniff
     }
 
     /**
+     * Fix a newline before a token by replacing whitespace between the boundary and the target.
+     *
+     * This uses a changeset to remove existing whitespace tokens between the
+     * previous non-whitespace token and the target, then inserts newline + indent.
+     * This prevents the addContentBefore looping issue where content is prepended
+     * on every fixer pass without removing the old whitespace.
+     */
+    private function fixNewLineBefore(File $phpcsFile, int $afterPtr, int $targetPtr, int $indent): void
+    {
+        $tokens = $phpcsFile->getTokens();
+        $phpcsFile->fixer->beginChangeset();
+
+        // Find the previous non-whitespace token before the target.
+        $prev = $phpcsFile->findPrevious(T_WHITESPACE, $targetPtr - 1, $afterPtr, true);
+        if ($prev === false) {
+            $prev = $afterPtr;
+        }
+
+        // Remove all whitespace tokens between the previous token and the target.
+        for ($i = $prev + 1; $i < $targetPtr; $i++) {
+            if ($tokens[$i]['code'] === T_WHITESPACE) {
+                $phpcsFile->fixer->replaceToken($i, '');
+            }
+        }
+
+        // Add newline + indent after the previous token.
+        $phpcsFile->fixer->addContent($prev, "\n" . str_repeat(' ', $indent));
+
+        $phpcsFile->fixer->endChangeset();
+    }
+
+    /**
      * Fix an array to be on a single line.
      */
     private function fixToSingleLine(File $phpcsFile, int $openPtr, int $closePtr, string $singleLineContent): void
@@ -657,5 +714,346 @@ class ArrayDeclarationSniff implements Sniff
         }
 
         $phpcsFile->fixer->endChangeset();
+    }
+
+    /**
+     * Check if all elements in a list array are scalar literals.
+     *
+     * Scalar means a single literal token: string, integer, float, true, false, null.
+     * Also accepts negative numbers (T_MINUS followed by a numeric literal).
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param array<array{start: int, end: int, arrow: int|null}> $elements The array elements.
+     * @return bool True if all elements are scalar literals.
+     */
+    private function isAllScalarElements(File $phpcsFile, array $elements): bool
+    {
+        $tokens = $phpcsFile->getTokens();
+        $scalarTokens = [
+            T_CONSTANT_ENCAPSED_STRING => true,
+            T_LNUMBER                  => true,
+            T_DNUMBER                  => true,
+            T_TRUE                     => true,
+            T_FALSE                    => true,
+            T_NULL                     => true,
+        ];
+
+        foreach ($elements as $element) {
+            // Collect non-whitespace tokens in this element.
+            $contentTokens = [];
+            for ($i = $element['start']; $i <= $element['end']; $i++) {
+                if ($tokens[$i]['code'] !== T_WHITESPACE) {
+                    $contentTokens[] = $tokens[$i];
+                }
+            }
+
+            if (count($contentTokens) === 1) {
+                // Single token — must be a scalar literal.
+                if (!isset($scalarTokens[$contentTokens[0]['code']])) {
+                    return false;
+                }
+            } elseif (count($contentTokens) === 2) {
+                // Two tokens — must be T_MINUS followed by a numeric literal.
+                if (
+                    $contentTokens[0]['code'] !== T_MINUS
+                    || ($contentTokens[1]['code'] !== T_LNUMBER && $contentTokens[1]['code'] !== T_DNUMBER)
+                ) {
+                    return false;
+                }
+            } else {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Get the text content of an array element, excluding whitespace.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param array{start: int, end: int, arrow: int|null} $element The element.
+     * @return string The concatenated non-whitespace content.
+     */
+    private function getElementContent(File $phpcsFile, array $element): string
+    {
+        $tokens = $phpcsFile->getTokens();
+        $content = '';
+        for ($i = $element['start']; $i <= $element['end']; $i++) {
+            if ($tokens[$i]['code'] !== T_WHITESPACE) {
+                $content .= $tokens[$i]['content'];
+            }
+        }
+        return $content;
+    }
+
+    /**
+     * Get the text content of an array element with normalized whitespace.
+     *
+     * Collapses all whitespace (including newlines) to single spaces and trims
+     * leading/trailing whitespace. Used for non-scalar elements like function calls.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param array{start: int, end: int, arrow: int|null} $element The element.
+     * @return string The content with normalized whitespace.
+     */
+    private function getNormalizedElementContent(File $phpcsFile, array $element): string
+    {
+        $tokens = $phpcsFile->getTokens();
+        $content = '';
+        $lastWasWhitespace = true;
+        for ($i = $element['start']; $i <= $element['end']; $i++) {
+            if ($tokens[$i]['code'] === T_WHITESPACE) {
+                if (!$lastWasWhitespace) {
+                    $content .= ' ';
+                    $lastWasWhitespace = true;
+                }
+            } else {
+                $content .= $tokens[$i]['content'];
+                $lastWasWhitespace = false;
+            }
+        }
+        return rtrim($content);
+    }
+
+    /**
+     * Get the maximum text width across all array elements.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param array<array{start: int, end: int, arrow: int|null}> $elements The array elements.
+     * @return int The maximum element width in characters.
+     */
+    private function getMaxElementWidth(File $phpcsFile, array $elements): int
+    {
+        $maxWidth = 0;
+        foreach ($elements as $element) {
+            $width = mb_strlen($this->getElementContent($phpcsFile, $element));
+            if ($width > $maxWidth) {
+                $maxWidth = $width;
+            }
+        }
+        return $maxWidth;
+    }
+
+    /**
+     * Build the expected grid-formatted array string.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param int $openPtr The opening bracket token position.
+     * @param int $closePtr The closing bracket token position.
+     * @param array<array{start: int, end: int, arrow: int|null}> $elements The array elements.
+     * @param int $baseIndent The base indentation in spaces.
+     * @param int $maxValueWidth The maximum element width.
+     * @param int $itemsPerLine The number of items per grid line.
+     * @return string The expected grid-formatted array.
+     */
+    private function buildGridArray(
+        File $phpcsFile,
+        int $openPtr,
+        int $closePtr,
+        array $elements,
+        int $baseIndent,
+        int $maxValueWidth,
+        int $itemsPerLine
+    ): string {
+        $tokens = $phpcsFile->getTokens();
+        $elementIndent = str_repeat(' ', $baseIndent + $this->indent);
+        $bracketIndent = str_repeat(' ', $baseIndent);
+        $nElements = count($elements);
+
+        $grid = $tokens[$openPtr]['content'] . "\n";
+        $itemCountThisLine = 0;
+
+        foreach ($elements as $i => $element) {
+            $value = $this->getElementContent($phpcsFile, $element);
+
+            // Start of line — add indent.
+            if ($itemCountThisLine === 0) {
+                $grid .= $elementIndent;
+            }
+
+            $itemCountThisLine++;
+            $isLastOnRow = ($itemCountThisLine === $itemsPerLine || $i === $nElements - 1);
+
+            if ($isLastOnRow) {
+                // Last item on row: value + comma, no padding (avoids trailing whitespace).
+                $grid .= $value . ",\n";
+                $itemCountThisLine = 0;
+            } else {
+                // Non-last item on row: pad value+comma to uniform width, then space.
+                $grid .= mb_str_pad($value . ',', $maxValueWidth + 1) . ' ';
+            }
+        }
+
+        $grid .= $bracketIndent . $tokens[$closePtr]['content'];
+        return $grid;
+    }
+
+    /**
+     * Process a list array that should be in grid format.
+     *
+     * Compares the actual array content against the expected grid format and
+     * reports a fixable error if they differ. Uses wholesale replacement.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param int $openPtr The opening bracket token position.
+     * @param int $closePtr The closing bracket token position.
+     * @param array<array{start: int, end: int, arrow: int|null}> $elements The array elements.
+     * @param int $baseIndent The base indentation in spaces.
+     * @param int $maxValueWidth The maximum element width.
+     * @param int $itemsPerLine The number of items per grid line.
+     */
+    private function processGridArray(
+        File $phpcsFile,
+        int $openPtr,
+        int $closePtr,
+        array $elements,
+        int $baseIndent,
+        int $maxValueWidth,
+        int $itemsPerLine
+    ): void {
+        // Build expected grid format.
+        $expected = $this->buildGridArray(
+            $phpcsFile,
+            $openPtr,
+            $closePtr,
+            $elements,
+            $baseIndent,
+            $maxValueWidth,
+            $itemsPerLine
+        );
+
+        // Build actual content.
+        $tokens = $phpcsFile->getTokens();
+        $actual = '';
+        for ($i = $openPtr; $i <= $closePtr; $i++) {
+            $actual .= $tokens[$i]['content'];
+        }
+
+        if ($actual === $expected) {
+            return;
+        }
+
+        $error = 'Scalar list array should use grid format.';
+        $fix = $phpcsFile->addFixableError($error, $openPtr, 'ListShouldBeGrid');
+        if ($fix === true) {
+            $phpcsFile->fixer->beginChangeset();
+            $phpcsFile->fixer->replaceToken($openPtr, $expected);
+            for ($i = $openPtr + 1; $i <= $closePtr; $i++) {
+                $phpcsFile->fixer->replaceToken($i, '');
+            }
+            $phpcsFile->fixer->endChangeset();
+        }
+    }
+
+    /**
+     * Build the expected one-per-line array string.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param int $openPtr The opening bracket token position.
+     * @param int $closePtr The closing bracket token position.
+     * @param array<array{start: int, end: int, arrow: int|null}> $elements The array elements.
+     * @param int $baseIndent The base indentation in spaces.
+     * @return string The expected one-per-line array.
+     */
+    private function buildOnePerLineArray(
+        File $phpcsFile,
+        int $openPtr,
+        int $closePtr,
+        array $elements,
+        int $baseIndent
+    ): string {
+        $tokens = $phpcsFile->getTokens();
+        $elementIndent = str_repeat(' ', $baseIndent + $this->indent);
+        $bracketIndent = str_repeat(' ', $baseIndent);
+
+        $result = $tokens[$openPtr]['content'] . "\n";
+
+        foreach ($elements as $element) {
+            $value = $this->getNormalizedElementContent($phpcsFile, $element);
+            $result .= $elementIndent . $value . ",\n";
+        }
+
+        $result .= $bracketIndent . $tokens[$closePtr]['content'];
+        return $result;
+    }
+
+    /**
+     * Process a list array that should be one element per line.
+     *
+     * Compares the actual array content against the expected one-per-line format
+     * and reports a fixable error if they differ. Uses wholesale replacement.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param int $openPtr The opening bracket token position.
+     * @param int $closePtr The closing bracket token position.
+     * @param array<array{start: int, end: int, arrow: int|null}> $elements The array elements.
+     * @param int $baseIndent The base indentation in spaces.
+     */
+    private function processOnePerLineArray(
+        File $phpcsFile,
+        int $openPtr,
+        int $closePtr,
+        array $elements,
+        int $baseIndent
+    ): void {
+        // Build expected one-per-line format.
+        $expected = $this->buildOnePerLineArray($phpcsFile, $openPtr, $closePtr, $elements, $baseIndent);
+
+        // Build actual content.
+        $tokens = $phpcsFile->getTokens();
+        $actual = '';
+        for ($i = $openPtr; $i <= $closePtr; $i++) {
+            $actual .= $tokens[$i]['content'];
+        }
+
+        if ($actual === $expected) {
+            return;
+        }
+
+        $error = 'List array should use one element per line format.';
+        $fix = $phpcsFile->addFixableError($error, $openPtr, 'ListShouldBeOnePerLine');
+        if ($fix === true) {
+            $phpcsFile->fixer->beginChangeset();
+            $phpcsFile->fixer->replaceToken($openPtr, $expected);
+            for ($i = $openPtr + 1; $i <= $closePtr; $i++) {
+                $phpcsFile->fixer->replaceToken($i, '');
+            }
+            $phpcsFile->fixer->endChangeset();
+        }
+    }
+
+    /**
+     * Check and fix trailing comma in a list array.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param int $openPtr The opening bracket token position.
+     * @param int $closePtr The closing bracket token position.
+     * @param bool $required Whether a trailing comma is required (true) or forbidden (false).
+     */
+    private function checkListTrailingComma(File $phpcsFile, int $openPtr, int $closePtr, bool $required): void
+    {
+        $tokens = $phpcsFile->getTokens();
+        $lastContent = $phpcsFile->findPrevious($this->ignoreTokens, $closePtr - 1, $openPtr, true);
+
+        if ($lastContent === false) {
+            return;
+        }
+
+        $hasTrailingComma = ($tokens[$lastContent]['code'] === T_COMMA);
+
+        if ($required && !$hasTrailingComma) {
+            $error = 'List array should have a trailing comma.';
+            $fix = $phpcsFile->addFixableError($error, $lastContent, 'ListMissingTrailingComma');
+            if ($fix === true) {
+                $phpcsFile->fixer->addContent($lastContent, ',');
+            }
+        } elseif (!$required && $hasTrailingComma) {
+            $error = 'Simple list arrays should not have a trailing comma.';
+            $fix = $phpcsFile->addFixableError($error, $lastContent, 'ListTrailingComma');
+            if ($fix === true) {
+                $phpcsFile->fixer->replaceToken($lastContent, '');
+            }
+        }
     }
 }

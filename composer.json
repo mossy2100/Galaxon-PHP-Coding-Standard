@@ -30,17 +30,20 @@
         "slevomat/coding-standard": "^8.25"
     },
     "require-dev": {
-        "phpstan/phpstan": "^2.1"
+        "phpstan/phpstan": "^2.1",
+        "phpunit/phpunit": "^11.0"
     },
     "scripts": {
         "fix": "vendor/bin/phpcbf -vp",
         "check": "vendor/bin/phpcs -s",
         "report": "vendor/bin/phpcs -q --report=summary",
         "analyze": "vendor/bin/phpstan analyze -l 9",
+        "test": "vendor/bin/phpunit",
         "quality": [
             "@fix",
             "@check",
-            "@analyze"
+            "@analyze",
+            "@test"
         ]
     },
     "extra": {
