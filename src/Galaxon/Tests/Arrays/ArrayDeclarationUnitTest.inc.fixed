@@ -168,9 +168,14 @@ $u = [
 // Valid: negative numbers that fit on one line (no grid needed).
 $v = [-100, -200, -300, -400, -500, -600];
 
-// === ERRORS: One per line ===
+// === VALID: Non-scalar lists ===
 
-// ListShouldBeOnePerLine: non-scalar list too long for one line.
+// Valid: variables and expressions that fit on one line.
+$w3 = [$alpha, $beta, $gamma];
+
+// === ERRORS: One per line (function calls) ===
+
+// ListShouldBeOnePerLine: function call list too long for single line.
 $w = [
     strtoupper('red'),
     strtolower('GREEN'),
@@ -180,11 +185,18 @@ $w = [
     ucfirst('test'),
 ];
 
-// ListShouldBeOnePerLine: non-scalar list fits on one line but should be one per line.
+// ListShouldBeOnePerLine: function call list that fits on one line.
 $w2 = [
     strlen('hi'),
     ucfirst('bye'),
     trim('x'),
+];
+
+// ListShouldBeOnePerLine: new expression list that fits on one line.
+$w4 = [
+    new stdClass(),
+    new stdClass(),
+    new stdClass(),
 ];
 
 // === ERRORS: Grid format ===

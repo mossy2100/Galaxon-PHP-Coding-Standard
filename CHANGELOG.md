@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-03-03
+
+### Changed
+
+- **Grid format eligibility expanded** — variables, properties, constants, enums, and simple expressions (e.g. grouping parentheses) are now eligible for single-line and grid formatting, not just scalar literals.
+- **Function/method calls, `new` expressions, and closures always one-per-line** — arrays containing these elements are formatted one item per line regardless of total length.
+- Consolidated `getElementContent()` and `getNormalizedElementContent()` into a single method.
+- Removed `isAllScalarElements()` in favour of `isGridEligible()` which checks for call-pattern tokens.
+- Updated README to reflect new grid eligibility rules and terminology.
+
 ## [1.1.0] - 2026-03-01
 
 ### Added

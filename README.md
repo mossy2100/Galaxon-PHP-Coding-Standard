@@ -266,11 +266,11 @@ Therefore, if any of the Galaxon packages are used in projects based on these fr
 
 Enforces consistent array formatting based on array type. The sniff differentiates between *lists* (no array keys appearing in the code), and *associative arrays* (at least one key appearing in the code). Technically, a list in PHP is any array with sequential integer keys starting from 0, but since we don't want to remove keys if they exist in the code, we treat any array with keys as an associative array and format it as such.
 
-The format is chosen automatically based on array type and content: simple scalar lists (i.e. lists containing only null, integer, float, boolean, and/or string literals) use a compact single-line format when they fit, and grid format when they don't. Non-scalar lists and associative arrays are formatted with one item per line.
+The format is chosen automatically based on array type and content: lists of simple values (i.e. null, integer, float, boolean, string, or enum literals; variables, properties, or constants; simple expressions) use a compact single-line format when they fit, and grid format when they don't. Lists of more complex values (i.e. arrays, callables, or expressions containing function, method, or constructor calls), and associative arrays are formatted with one item per line.
 
 Array indentation defaults to 4 spaces per nesting level; this is configurable. The sniff uses `mb_strlen()` for proper Unicode character support when aligning arrows and grid padding. Values in associative arrays must start on the same line as the double arrow.
 
-**Scalar lists**: A compact, single-line format (no trailing comma) is used when the result won't overflow the maximum line length.
+**Simple lists**: A compact, single-line format (no trailing comma) is used when the result won't overflow the maximum line length.
 ```php
 // Good
 $colors = ['red', 'green', 'blue'];
@@ -283,7 +283,7 @@ $colors = [
 ];
 ```
 
-**Grid format**: Lists of scalar literals too long for a single line are arranged in a grid with uniform padding. A trailing comma is included.
+**Grid format**: Lists of simple values too long for a single line are arranged in a grid with uniform padding. A trailing comma is included.
 ```php
 // Good
 $colors = [
@@ -293,7 +293,7 @@ $colors = [
 ];
 ```
 
-**One per line**: Non-scalar lists (i.e. containing function calls, expressions, enums, objects, etc.) always use one element per line with a trailing comma.
+**One per line**: Complex lists always use one element per line with a trailing comma.
 ```php
 // Good
 $results = [

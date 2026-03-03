@@ -5,8 +5,8 @@
  *
  * Rules:
  * 1. Simple list arrays (no keys, no nested arrays): single line if possible, no trailing comma.
- * 2. Scalar list arrays too long for one line: grid format with uniform padding, trailing comma on all items.
- * 3. Non-scalar list arrays too long for one line: one element per line, trailing comma required.
+ * 2. List arrays too long for one line: grid format with uniform padding, trailing comma on all items.
+ * 3. List arrays where grid format doesn't fit (items too wide): one element per line, trailing comma required.
  * 4. List of arrays: one element per line, trailing comma required.
  * 5. Associative arrays: one key-value pair per line, arrows aligned, 4-space indent, trailing comma required.
  */
@@ -189,10 +189,17 @@ class ArrayDeclarationSniff implements Sniff
             return;
         }
 
-        $allScalar = $this->isAllScalarElements($phpcsFile, $elements);
+        $baseIndent = $this->getBaseIndent($phpcsFile, $openPtr);
+        $gridEligible = $this->isGridEligible($phpcsFile, $elements);
 
-        // Target: single line (only for all-scalar lists that fit).
-        if ($allScalar && $totalLength <= $this->maxLineLength) {
+        // Lists containing function/method calls, new expressions, or closures always go one per line.
+        if (!$gridEligible) {
+            $this->processOnePerLineArray($phpcsFile, $openPtr, $closePtr, $elements, $baseIndent);
+            return;
+        }
+
+        // Target: single line (simple lists that fit within line length).
+        if ($totalLength <= $this->maxLineLength) {
             // Remove trailing comma — single-line lists don't have one.
             $this->checkListTrailingComma($phpcsFile, $openPtr, $closePtr, false);
 
@@ -209,27 +216,23 @@ class ArrayDeclarationSniff implements Sniff
             return;
         }
 
-        // Non-scalar or too long — check grid eligibility.
-        $baseIndent = $this->getBaseIndent($phpcsFile, $openPtr);
+        // Too long for single line — try grid format.
+        $elementIndentSpaces = $baseIndent + $this->indent;
+        $maxValueWidth = $this->getMaxElementWidth($phpcsFile, $elements);
+        $itemsPerLine = (int)floor(($this->maxLineLength + 1 - $elementIndentSpaces) / ($maxValueWidth + 2));
 
-        if ($this->isAllScalarElements($phpcsFile, $elements)) {
-            $elementIndentSpaces = $baseIndent + $this->indent;
-            $maxValueWidth = $this->getMaxElementWidth($phpcsFile, $elements);
-            $itemsPerLine = (int)floor(($this->maxLineLength + 1 - $elementIndentSpaces) / ($maxValueWidth + 2));
-
-            if ($itemsPerLine > 1) {
-                // Target: grid format.
-                $this->processGridArray(
-                    $phpcsFile,
-                    $openPtr,
-                    $closePtr,
-                    $elements,
-                    $baseIndent,
-                    $maxValueWidth,
-                    $itemsPerLine
-                );
-                return;
-            }
+        if ($itemsPerLine > 1) {
+            // Target: grid format.
+            $this->processGridArray(
+                $phpcsFile,
+                $openPtr,
+                $closePtr,
+                $elements,
+                $baseIndent,
+                $maxValueWidth,
+                $itemsPerLine
+            );
+            return;
         }
 
         // Target: one per line.
@@ -717,51 +720,44 @@ class ArrayDeclarationSniff implements Sniff
     }
 
     /**
-     * Check if all elements in a list array are scalar literals.
+     * Check if all elements are eligible for grid formatting.
      *
-     * Scalar means a single literal token: string, integer, float, true, false, null.
-     * Also accepts negative numbers (T_MINUS followed by a numeric literal).
+     * Grid format is suitable for simple expressions: scalars, variables, property accesses, constants, and simple
+     * arithmetic. Elements containing function/method calls, closures, arrow functions, or object construction are
+     * excluded because they are too visually complex for grid padding.
      *
      * @param File $phpcsFile The file being scanned.
      * @param array<array{start: int, end: int, arrow: int|null}> $elements The array elements.
-     * @return bool True if all elements are scalar literals.
+     * @return bool True if all elements are eligible for grid formatting.
      */
-    private function isAllScalarElements(File $phpcsFile, array $elements): bool
+    private function isGridEligible(File $phpcsFile, array $elements): bool
     {
         $tokens = $phpcsFile->getTokens();
-        $scalarTokens = [
-            T_CONSTANT_ENCAPSED_STRING => true,
-            T_LNUMBER                  => true,
-            T_DNUMBER                  => true,
-            T_TRUE                     => true,
-            T_FALSE                    => true,
-            T_NULL                     => true,
+
+        // Token codes that, when followed by T_OPEN_PARENTHESIS, indicate a call.
+        $callPrecedingTokens = [
+            T_STRING   => true,
+            T_VARIABLE => true,
+            T_CLOSURE  => true,
+            T_FN       => true,
         ];
 
         foreach ($elements as $element) {
-            // Collect non-whitespace tokens in this element.
-            $contentTokens = [];
             for ($i = $element['start']; $i <= $element['end']; $i++) {
-                if ($tokens[$i]['code'] !== T_WHITESPACE) {
-                    $contentTokens[] = $tokens[$i];
-                }
-            }
+                $code = $tokens[$i]['code'];
 
-            if (count($contentTokens) === 1) {
-                // Single token — must be a scalar literal.
-                if (!isset($scalarTokens[$contentTokens[0]['code']])) {
+                // New expressions are never grid-eligible.
+                if ($code === T_NEW) {
                     return false;
                 }
-            } elseif (count($contentTokens) === 2) {
-                // Two tokens — must be T_MINUS followed by a numeric literal.
-                if (
-                    $contentTokens[0]['code'] !== T_MINUS
-                    || ($contentTokens[1]['code'] !== T_LNUMBER && $contentTokens[1]['code'] !== T_DNUMBER)
-                ) {
-                    return false;
+
+                // Check if an open parenthesis is a function/method call.
+                if ($code === T_OPEN_PARENTHESIS) {
+                    $prev = $phpcsFile->findPrevious(T_WHITESPACE, $i - 1, $element['start'], true);
+                    if ($prev !== false && isset($callPrecedingTokens[$tokens[$prev]['code']])) {
+                        return false;
+                    }
                 }
-            } else {
-                return false;
             }
         }
 
@@ -769,35 +765,16 @@ class ArrayDeclarationSniff implements Sniff
     }
 
     /**
-     * Get the text content of an array element, excluding whitespace.
-     *
-     * @param File $phpcsFile The file being scanned.
-     * @param array{start: int, end: int, arrow: int|null} $element The element.
-     * @return string The concatenated non-whitespace content.
-     */
-    private function getElementContent(File $phpcsFile, array $element): string
-    {
-        $tokens = $phpcsFile->getTokens();
-        $content = '';
-        for ($i = $element['start']; $i <= $element['end']; $i++) {
-            if ($tokens[$i]['code'] !== T_WHITESPACE) {
-                $content .= $tokens[$i]['content'];
-            }
-        }
-        return $content;
-    }
-
-    /**
      * Get the text content of an array element with normalized whitespace.
      *
      * Collapses all whitespace (including newlines) to single spaces and trims
-     * leading/trailing whitespace. Used for non-scalar elements like function calls.
+     * leading/trailing whitespace.
      *
      * @param File $phpcsFile The file being scanned.
      * @param array{start: int, end: int, arrow: int|null} $element The element.
      * @return string The content with normalized whitespace.
      */
-    private function getNormalizedElementContent(File $phpcsFile, array $element): string
+    private function getElementContent(File $phpcsFile, array $element): string
     {
         $tokens = $phpcsFile->getTokens();
         $content = '';
@@ -934,7 +911,7 @@ class ArrayDeclarationSniff implements Sniff
             return;
         }
 
-        $error = 'Scalar list array should use grid format.';
+        $error = 'List array should use grid format.';
         $fix = $phpcsFile->addFixableError($error, $openPtr, 'ListShouldBeGrid');
         if ($fix === true) {
             $phpcsFile->fixer->beginChangeset();
@@ -970,7 +947,7 @@ class ArrayDeclarationSniff implements Sniff
         $result = $tokens[$openPtr]['content'] . "\n";
 
         foreach ($elements as $element) {
-            $value = $this->getNormalizedElementContent($phpcsFile, $element);
+            $value = $this->getElementContent($phpcsFile, $element);
             $result .= $elementIndent . $value . ",\n";
         }
 

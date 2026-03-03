@@ -57,16 +57,18 @@ class ArrayDeclarationUnitTest extends AbstractSniffTestCase
             146 => 1,
             // Assoc: value not on arrow line.
             151 => 1,
-            // One per line: non-scalar list too long for one line.
-            169 => 1,
-            // One per line: non-scalar list fits on one line.
-            172 => 1,
-            // Grid: one-per-line list that should be grid.
+            // One per line: function call list too long for single line.
+            174 => 1,
+            // One per line: function call list that fits on one line.
             177 => 1,
+            // One per line: new expression list that fits on one line.
+            180 => 1,
+            // Grid: one-per-line list that should be grid.
+            185 => 1,
             // Grid: single long line that should be grid.
-            196 => 1,
+            204 => 1,
             // Grid: grid with wrong padding.
-            199 => 1,
+            207 => 1,
         ];
     }
 
