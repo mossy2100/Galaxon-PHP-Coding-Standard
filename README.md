@@ -214,7 +214,6 @@ Links:
 - **ParameterTypeHint**: Requires parameter type hints
 - **PropertyTypeHint**: Requires property type hints
 - **ReturnTypeHint**: Requires return type hints
-- **UselessConstantTypeHint**: Disallows useless constant type hints
 - **ClassConstantTypeHint**: Requires class constant type hints
 
 #### Variables
