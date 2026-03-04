@@ -29,6 +29,11 @@
         </properties>
     </rule>
 
+    <!-- Line length. This warning is replaced by an error from SlevomatCodingStandard.Files.LineLength.LineTooLong -->
+    <rule ref="Generic.Files.LineLength">
+        <exclude name="Generic.Files.LineLength.TooLong"/>
+    </rule>
+
     <!-- ====== SQUIZ ====== -->
 
     <!-- Variables and properties in lowerCamelCaps -->
@@ -237,9 +242,6 @@
     </rule>
     <rule ref="SlevomatCodingStandard.TypeHints.ReturnTypeHint">
         <exclude name="SlevomatCodingStandard.TypeHints.ReturnTypeHint.UselessAnnotation"/>
-    </rule>
-    <rule ref="SlevomatCodingStandard.TypeHints.UselessConstantTypeHint">
-        <exclude name="SlevomatCodingStandard.TypeHints.UselessConstantTypeHint.UselessVarAnnotation"/>
     </rule>
     <rule ref="SlevomatCodingStandard.TypeHints.ClassConstantTypeHint">
         <exclude name="SlevomatCodingStandard.TypeHints.ClassConstantTypeHint.UselessVarAnnotation"/>
