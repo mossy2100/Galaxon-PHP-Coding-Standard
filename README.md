@@ -265,14 +265,16 @@ Therefore, if any of the Galaxon packages are used in projects based on these fr
 
 Enforces consistent array formatting based on array type. The sniff differentiates between *lists* (no array keys appearing in the code), and *associative arrays* (at least one key appearing in the code). Technically, a list in PHP is any array with sequential integer keys starting from 0, but since we don't want to remove keys if they exist in the code, we treat any array with keys as an associative array and format it as such.
 
-The format is chosen automatically based on array type and content: lists of simple values (i.e. null, integer, float, boolean, string, or enum literals; variables, properties, or constants; simple expressions) use a compact single-line format when they fit, and grid format when they don't. Lists of more complex values (i.e. arrays, callables, or expressions containing function, method, or constructor calls), and associative arrays are formatted with one item per line.
+The format is chosen automatically based on array type, content, and length. Lists without nested arrays that fit on a single line (without overflowing the maximum line length and without multiline elements) use a compact single-line format — regardless of whether elements contain function calls or `new` expressions. Lists that don't fit on one line use grid format for simple values, or one-per-line for complex values (function/method calls, `new` expressions). Lists containing nested arrays always use one-per-line format. Associative arrays always use one key-value pair per line.
 
 Array indentation defaults to 4 spaces per nesting level; this is configurable. The sniff uses `mb_strlen()` for proper Unicode character support when aligning arrows and grid padding. Values in associative arrays must start on the same line as the double arrow.
 
-**Simple lists**: A compact, single-line format (no trailing comma) is used when the result won't overflow the maximum line length.
+**Single-line lists**: Lists without nested arrays that fit on one line use a compact format with no trailing comma — including lists with function calls or `new` expressions.
 ```php
 // Good
 $colors = ['red', 'green', 'blue'];
+$results = [strlen('hi'), ucfirst('bye'), trim('x')];
+$objects = [new Foo(), new Bar(), new Baz()];
 
 // Bad
 $colors = [
@@ -292,7 +294,7 @@ $colors = [
 ];
 ```
 
-**One per line**: Complex lists always use one element per line with a trailing comma.
+**One per line**: Lists too long for a single line that contain function/method calls or `new` expressions use one element per line with a trailing comma.
 ```php
 // Good
 $results = [
@@ -303,7 +305,7 @@ $results = [
 ];
 ```
 
-**List of arrays**: One element per line, trailing comma required.
+**List of arrays**: Lists containing nested arrays always use one element per line, trailing comma required.
 ```php
 // Good
 $points = [
@@ -311,9 +313,6 @@ $points = [
     [3, 4],
     [5, 6],
 ];
-
-// Bad
-$points = [[1, 2], [3, 4], [5, 6]];
 ```
 
 **Associative arrays**: One key-value pair per line, arrows aligned, trailing comma required.

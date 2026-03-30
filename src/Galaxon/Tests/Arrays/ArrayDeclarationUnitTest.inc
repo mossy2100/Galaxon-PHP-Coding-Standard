@@ -168,16 +168,16 @@ $v = [-100, -200, -300, -400, -500, -600];
 // Valid: variables and expressions that fit on one line.
 $w3 = [$alpha, $beta, $gamma];
 
-// === ERRORS: One per line (function calls) ===
+// Valid: function call list that fits on one line.
+$w2 = [strlen('hi'), ucfirst('bye'), trim('x')];
+
+// Valid: new expression list that fits on one line.
+$w4 = [new stdClass(), new stdClass(), new stdClass()];
+
+// === ERRORS: One per line (non-scalar lists too long for single line) ===
 
 // ListShouldBeOnePerLine: function call list too long for single line.
 $w = [strtoupper('red'), strtolower('GREEN'), trim('  blue  '), substr('yellow', 0, 3), str_repeat('x', 10), ucfirst('test')];
-
-// ListShouldBeOnePerLine: function call list that fits on one line.
-$w2 = [strlen('hi'), ucfirst('bye'), trim('x')];
-
-// ListShouldBeOnePerLine: new expression list that fits on one line.
-$w4 = [new stdClass(), new stdClass(), new stdClass()];
 
 // === ERRORS: Grid format ===
 

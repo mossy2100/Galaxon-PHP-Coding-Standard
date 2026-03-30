@@ -8,7 +8,7 @@
  * 2. List arrays too long for one line: grid format with uniform padding, trailing comma on all items.
  * 3. List arrays where grid format doesn't fit (items too wide): one element per line, trailing comma required.
  * 4. List of arrays: one element per line, trailing comma required.
- * 5. Associative arrays: one key-value pair per line, arrows aligned, 4-space indent, trailing comma required.
+ * 5. Dictionaries: one key-value pair per line, arrows aligned, 4-space indent, trailing comma required.
  */
 
 declare(strict_types=1);
@@ -121,20 +121,20 @@ class ArrayDeclarationSniff implements Sniff
             return;
         }
 
-        // Determine if this is an associative array.
-        $isAssociative = $this->isAssociativeArray($phpcsFile, $openPtr, $closePtr);
+        // Determine if this is a dictionary.
+        $isDictionary = $this->isDictionary($phpcsFile, $openPtr, $closePtr);
 
-        if ($isAssociative) {
-            $this->processAssociativeArray($phpcsFile, $openPtr, $closePtr);
+        if ($isDictionary) {
+            $this->processDictionary($phpcsFile, $openPtr, $closePtr);
         } else {
-            $this->processListArray($phpcsFile, $openPtr, $closePtr);
+            $this->processList($phpcsFile, $openPtr, $closePtr);
         }
     }
 
     /**
-     * Check if the array is associative (has at least one key => value pair).
+     * Check if the array is a dictionary (has at least one key => value pair).
      */
-    private function isAssociativeArray(File $phpcsFile, int $openPtr, int $closePtr): bool
+    private function isDictionary(File $phpcsFile, int $openPtr, int $closePtr): bool
     {
         $tokens = $phpcsFile->getTokens();
         $depth = 0;
@@ -165,7 +165,7 @@ class ArrayDeclarationSniff implements Sniff
     /**
      * Process a list array (no keys).
      */
-    private function processListArray(File $phpcsFile, int $openPtr, int $closePtr): void
+    private function processList(File $phpcsFile, int $openPtr, int $closePtr): void
     {
         // Check if this list contains nested arrays.
         if ($this->containsNestedArrays($phpcsFile, $openPtr, $closePtr)) {
@@ -189,6 +189,25 @@ class ArrayDeclarationSniff implements Sniff
             return;
         }
 
+        // Target: single line (lists that fit within line length and have no multiline elements).
+        $hasMultilineElements = $this->hasMultilineElements($phpcsFile, $elements);
+        if ($totalLength <= $this->maxLineLength && !$hasMultilineElements) {
+            if ($openLine === $closeLine) {
+                // Already single-line — just check trailing comma.
+                $this->checkListTrailingComma($phpcsFile, $openPtr, $closePtr, false);
+                return;
+            }
+
+            // Multi-line but fits on one line — fix it (buildSingleLineArray already strips trailing comma).
+            $error = 'Simple list array should be on a single line when it fits within line length.';
+            $fix = $phpcsFile->addFixableError($error, $openPtr, 'ListShouldBeSingleLine');
+            if ($fix === true) {
+                $this->fixToSingleLine($phpcsFile, $openPtr, $closePtr, $singleLineContent);
+            }
+            return;
+        }
+
+        // Too long for single line — determine multiline format.
         $baseIndent = $this->getBaseIndent($phpcsFile, $openPtr);
         $gridEligible = $this->isGridEligible($phpcsFile, $elements);
 
@@ -198,25 +217,7 @@ class ArrayDeclarationSniff implements Sniff
             return;
         }
 
-        // Target: single line (simple lists that fit within line length).
-        if ($totalLength <= $this->maxLineLength) {
-            // Remove trailing comma — single-line lists don't have one.
-            $this->checkListTrailingComma($phpcsFile, $openPtr, $closePtr, false);
-
-            if ($openLine === $closeLine) {
-                return; // Already single-line and fits.
-            }
-
-            // Multi-line but fits on one line — fix it.
-            $error = 'Simple list array should be on a single line when it fits within line length.';
-            $fix = $phpcsFile->addFixableError($error, $openPtr, 'ListShouldBeSingleLine');
-            if ($fix === true) {
-                $this->fixToSingleLine($phpcsFile, $openPtr, $closePtr, $singleLineContent);
-            }
-            return;
-        }
-
-        // Too long for single line — try grid format.
+        // Try grid format.
         $elementIndentSpaces = $baseIndent + $this->indent;
         $maxValueWidth = $this->getMaxElementWidth($phpcsFile, $elements);
         $itemsPerLine = (int)floor(($this->maxLineLength + 1 - $elementIndentSpaces) / ($maxValueWidth + 2));
@@ -340,9 +341,9 @@ class ArrayDeclarationSniff implements Sniff
     }
 
     /**
-     * Process an associative array (has keys).
+     * Process a dictionary (has keys).
      */
-    private function processAssociativeArray(File $phpcsFile, int $openPtr, int $closePtr): void
+    private function processDictionary(File $phpcsFile, int $openPtr, int $closePtr): void
     {
         $tokens = $phpcsFile->getTokens();
 
@@ -356,7 +357,7 @@ class ArrayDeclarationSniff implements Sniff
         // Check for trailing comma.
         $lastContent = $phpcsFile->findPrevious($this->ignoreTokens, $closePtr - 1, $openPtr, true);
         if ($lastContent !== false && $tokens[$lastContent]['code'] !== T_COMMA) {
-            $error = 'Associative arrays should have a trailing comma.';
+            $error = 'Dictionaries should have a trailing comma.';
             $fix = $phpcsFile->addFixableError($error, $lastContent, 'AssocMissingTrailingComma');
             if ($fix === true) {
                 $phpcsFile->fixer->addContent($lastContent, ',');
@@ -383,14 +384,14 @@ class ArrayDeclarationSniff implements Sniff
 
             // First element should be on a new line after opening bracket.
             if ($index === 0 && $elementLine === $openLine) {
-                $error = 'First element of associative array should be on a new line.';
+                $error = 'First element of dictionary should be on a new line.';
                 $fix = $phpcsFile->addFixableError($error, $element['start'], 'AssocFirstElementNewLine');
                 if ($fix === true) {
                     $this->fixNewLineBefore($phpcsFile, $openPtr, $element['start'], $elementIndent);
                 }
             } elseif ($index > 0 && $elementLine === $prevElementLine) {
                 // Each subsequent element should be on its own line.
-                $error = 'Each element in associative array should be on its own line.';
+                $error = 'Each element in dictionary should be on its own line.';
                 $fix = $phpcsFile->addFixableError($error, $element['start'], 'AssocElementNewLine');
                 if ($fix === true) {
                     $this->fixNewLineBefore($phpcsFile, $openPtr, $element['start'], $elementIndent);
@@ -457,7 +458,7 @@ class ArrayDeclarationSniff implements Sniff
         $closeLine = $tokens[$closePtr]['line'];
 
         if ($closeLine === $lastElementLine) {
-            $error = 'Closing bracket of associative array should be on a new line.';
+            $error = 'Closing bracket of dictionary should be on a new line.';
             $fix = $phpcsFile->addFixableError($error, $closePtr, 'AssocClosingBracketNewLine');
             if ($fix === true) {
                 $this->fixNewLineBefore($phpcsFile, $openPtr, $closePtr, $baseIndent);
@@ -746,8 +747,8 @@ class ArrayDeclarationSniff implements Sniff
             for ($i = $element['start']; $i <= $element['end']; $i++) {
                 $code = $tokens[$i]['code'];
 
-                // New expressions are never grid-eligible.
-                if ($code === T_NEW) {
+                // New expressions and nested arrays are never grid-eligible.
+                if ($code === T_NEW || $code === T_OPEN_SHORT_ARRAY || $code === T_ARRAY) {
                     return false;
                 }
 
@@ -762,6 +763,26 @@ class ArrayDeclarationSniff implements Sniff
         }
 
         return true;
+    }
+
+    /**
+     * Check if any array element spans multiple lines.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param list<array{start: int, end: int, arrow: int|null}> $elements The elements.
+     * @return bool True if any element spans more than one line.
+     */
+    private function hasMultilineElements(File $phpcsFile, array $elements): bool
+    {
+        $tokens = $phpcsFile->getTokens();
+
+        foreach ($elements as $element) {
+            if ($tokens[$element['start']]['line'] !== $tokens[$element['end']]['line']) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

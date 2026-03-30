@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-03-30
+
+### Changed
+
+- **Single-line arrays take priority** — any list (without nested arrays) that fits on one line without overflowing the maximum line length and without multiline elements now uses single-line format, regardless of content. Function calls and `new` expressions no longer force multiline when the array fits on one line. Lists with nested arrays always use one-per-line format.
+- **Nested arrays excluded from grid format** — lists containing nested arrays that are too long for a single line use one-per-line format instead of grid.
+- **UseSpacing** — set `linesCountBetweenUseTypes` to 1 for a blank line between different import types (class, function, const).
+- Excluded `Generic.Files.LineLength.TooLong` warning (replaced by Slevomat's `Files.LineLength.LineTooLong` error).
+- Removed `UselessConstantTypeHint` sniff (not needed with `ClassConstantTypeHint`).
+
+### Fixed
+
+- **Array fix bouncing** — fixed infinite loop in PHPCBF when collapsing a multiline list to single line. The trailing comma removal and single-line collapse no longer conflict.
+
+### Documentation
+
+- Updated README to reflect single-line priority for all list types.
+- Updated array formatting examples and descriptions.
+
 ## [1.1.1] - 2026-03-03
 
 ### Changed

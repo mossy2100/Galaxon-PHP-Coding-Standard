@@ -22,9 +22,8 @@ class ArrayDeclarationUnitTest extends AbstractSniffTestCase
         return [
             // Simple list: trailing comma.
             14  => 1,
-            // Simple list: should be single line + trailing comma.
+            // Simple list: should be single line (trailing comma handled by fix).
             17  => 1,
-            20  => 1,
             // List of arrays: missing trailing comma.
             38  => 1,
             // List of arrays: first element on same line.
@@ -58,10 +57,6 @@ class ArrayDeclarationUnitTest extends AbstractSniffTestCase
             // Assoc: value not on arrow line.
             151 => 1,
             // One per line: function call list too long for single line.
-            174 => 1,
-            // One per line: function call list that fits on one line.
-            177 => 1,
-            // One per line: new expression list that fits on one line.
             180 => 1,
             // Grid: one-per-line list that should be grid.
             185 => 1,
