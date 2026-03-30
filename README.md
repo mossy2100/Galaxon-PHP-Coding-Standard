@@ -6,9 +6,11 @@ A PHP_CodeSniffer coding standard for Galaxon PHP libraries extending PSR-12 wit
 
 ![PHP 8.4](docs/logo_php8_4.png)
 
+---
+
 ## Description
 
-This package provides a custom PHP_CodeSniffer coding standard for Galaxon PHP libraries. It extends PSR-12 with additional rules for consistent naming conventions and modern PHP 8.4+ syntax.
+This package provides a custom PHP_CodeSniffer coding standard for the Galaxon PHP libraries by Shaun Moss. It extends PSR-12 with additional rules for consistent naming conventions and modern PHP 8.4+ syntax.
 
 **Key Features:**
 - Extends PSR-12 coding standard
@@ -27,14 +29,22 @@ The package provides several custom sniffs to cover gaps in the available standa
 
 See [Custom Sniffs](#custom-sniffs) for more details.
 
+---
+
 ## Development and Quality Assurance / AI Disclosure
 
 [Claude Chat](https://claude.ai) and [Claude Code](https://www.claude.com/product/claude-code) were used in the development of this package. The core classes were designed, coded, and commented primarily by the author, with Claude providing substantial assistance with code review, suggesting improvements, debugging, and generating tests and documentation. All code was thoroughly reviewed by the author, and validated using industry-standard tools including [PHP_Codesniffer](https://github.com/PHPCSStandards/PHP_CodeSniffer/) and [PHPStan](https://phpstan.org/) (to level 9) to ensure full compliance with [PSR-12](https://www.php-fig.org/psr/psr-12/) coding standards. This collaborative approach resulted in a high-quality, thoroughly-tested, and well-documented package delivered in significantly less time than traditional development methods.
+
+---
 
 ## Requirements
 
 - PHP ^8.4
 - squizlabs/php_codesniffer ^4.0
+- slevomat/coding-standard ^8.25
+- dealerdirect/phpcodesniffer-composer-installer ^1.0
+
+---
 
 ## Installation
 
@@ -43,6 +53,8 @@ composer require --dev galaxon/coding-standard
 ```
 
 The standard is automatically registered with PHP_CodeSniffer via the `dealerdirect/phpcodesniffer-composer-installer` plugin.
+
+---
 
 ## Usage
 
@@ -66,6 +78,8 @@ Then run:
 vendor/bin/phpcs        # Check for issues
 vendor/bin/phpcbf       # Auto-fix issues
 ```
+
+---
 
 ## Included Sniffs
 
@@ -221,6 +235,8 @@ Links:
 - **DuplicateAssignmentToVariable**: Disallows duplicate assignments to the same variable
 - **UselessVariable**: Disallows useless variables
 
+---
+
 ## Variable and Property Naming Convention
 
 Ensures all variables, parameters, and properties use `$lowerCamelCase` format without leading underscores.
@@ -258,6 +274,8 @@ This sniff is compliant with several PHP coding standards:
 3. Drupal variable names may use either `$lowerCamelCase` or `$lower_snake_case` ([ref](https://project.pages.drupalcode.org/coding_standards/php/coding/#functions-and-variables)), as long as one is consistent. Properties should use `$lowerCamelCase`, and protected or private properties should not use an underscore prefix. ([ref](https://project.pages.drupalcode.org/coding_standards/php/coding/#classes-methods-and-properties)).
 
 Therefore, if any of the Galaxon packages are used in projects based on these frameworks, the code should be compliant.
+
+---
 
 ## Custom Sniffs
 
@@ -409,9 +427,13 @@ class User
 </rule>
 ```
 
+---
+
 ## License
 
 MIT License - see [LICENSE](LICENSE) for details
+
+---
 
 ## Contributing
 
@@ -425,10 +447,14 @@ Contributions are welcome! Please:
 
 For questions or suggestions, please [open an issue](https://github.com/mossy2100/PHP-CodingStandard/issues).
 
+---
+
 ## Support
 
 - **Issues**: https://github.com/mossy2100/PHP-CodingStandard/issues
 - **Examples**: See `phpcs.xml` files in other Galaxon packages
+
+---
 
 ## Changelog
 
