@@ -1,6 +1,8 @@
 parameters:
     paths:
         - src
+    excludePaths:
+        - src/Galaxon/Sniffs/WhiteSpace/ScopeIndentSniff.php
     treatPhpDocTypesAsCertain: false
     scanDirectories:
         - vendor/squizlabs/php_codesniffer

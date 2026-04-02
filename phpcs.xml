@@ -8,4 +8,8 @@
     <!-- Galaxon Coding Standard (includes PSR12 + custom rules) -->
     <rule ref="Galaxon"/>
 
+    <exclude-pattern>*/Tests/*.inc</exclude-pattern>
+    <exclude-pattern>*/Tests/*.inc.fixed</exclude-pattern>
+    <exclude-pattern>*/ScopeIndentSniff.php</exclude-pattern>
+
 </ruleset>

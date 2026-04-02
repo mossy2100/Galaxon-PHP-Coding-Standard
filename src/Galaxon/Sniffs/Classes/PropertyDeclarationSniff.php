@@ -30,8 +30,6 @@ class PropertyDeclarationSniff extends AbstractVariableSniff
     protected function processMemberVar(File $phpcsFile, int $stackPtr): void
     {
         // If this variable is inside a property hook body, skip it.
-        // Variables inside hooks (like $this, $value, local vars) are not
-        // property declarations.
         if (PropertyHookHelper::isInsidePropertyHook($phpcsFile, $stackPtr)) {
             return;
         }
@@ -45,14 +43,40 @@ class PropertyDeclarationSniff extends AbstractVariableSniff
 
         $tokens = $phpcsFile->getTokens();
 
-        if ($tokens[$stackPtr]['content'][1] === '_') {
+        $this->checkUnderscore($phpcsFile, $stackPtr, $tokens);
+        $this->checkMultipleDeclarations($phpcsFile, $stackPtr, $tokens);
+        $this->checkTypeSpacing($phpcsFile, $stackPtr, $tokens, $propertyInfo);
+        $this->checkVisibility($phpcsFile, $stackPtr, $tokens, $propertyInfo);
+        $this->checkModifierOrder($phpcsFile, $stackPtr, $tokens, $propertyInfo);
+    }
+
+    /**
+     * Check for underscore-prefixed property names.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param int $stackPtr The position of the property token.
+     * @param array<int, array<string, mixed>> $tokens The token stack.
+     */
+    private function checkUnderscore(File $phpcsFile, int $stackPtr, array $tokens): void
+    {
+        $content = $tokens[$stackPtr]['content'];
+        assert(is_string($content));
+        if (isset($content[1]) && $content[1] === '_') {
             $error = 'Property name "%s" should not be prefixed with an underscore to indicate visibility';
             $data = [$tokens[$stackPtr]['content']];
             $phpcsFile->addWarning($error, $stackPtr, 'Underscore', $data);
         }
+    }
 
-        // Detect multiple properties defined at the same time.
-        // For properties with hooks, we need to handle the { ... } block.
+    /**
+     * Check for multiple property declarations on one line.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param int $stackPtr The position of the property token.
+     * @param array<int, array<string, mixed>> $tokens The token stack.
+     */
+    private function checkMultipleDeclarations(File $phpcsFile, int $stackPtr, array $tokens): void
+    {
         $find = Tokens::SCOPE_MODIFIERS;
         $find[] = T_VARIABLE;
         $find[] = T_VAR;
@@ -73,177 +97,247 @@ class PropertyDeclarationSniff extends AbstractVariableSniff
         }
 
         // Check for multiple property declaration.
-        // We need to find the next T_VARIABLE, T_SEMICOLON, or T_OPEN_CURLY_BRACKET.
-        // If we find T_OPEN_CURLY_BRACKET first, it's a property with hooks (not multiple).
-        // If we find T_VARIABLE first before T_SEMICOLON, it's multiple properties.
         $next = $phpcsFile->findNext([T_VARIABLE, T_SEMICOLON, T_OPEN_CURLY_BRACKET], ($stackPtr + 1));
         if ($next !== false && $tokens[$next]['code'] === T_VARIABLE) {
-            // Found another variable. But we need to check it's not inside a default value.
-            // For example: public array $foo = [$bar] - $bar is not a second property.
-            // Check if there's an = between stackPtr and next.
+            // Check it's not inside a default value (e.g. public array $foo = [$bar]).
             $equals = $phpcsFile->findNext(T_EQUAL, ($stackPtr + 1), $next);
             if ($equals === false) {
                 $error = 'There must not be more than one property declared per statement';
                 $phpcsFile->addError($error, $stackPtr, 'Multiple');
             }
         }
+    }
 
-        if ($propertyInfo['type'] !== '') {
-            $typeToken = $propertyInfo['type_end_token'];
-            $error = 'There must be 1 space after the property type declaration; %s found';
-            if ($tokens[($typeToken + 1)]['code'] !== T_WHITESPACE) {
-                $data = ['0'];
+    /**
+     * Check spacing after the property type declaration.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param int $stackPtr The position of the property token.
+     * @param array<int, array<string, mixed>> $tokens The token stack.
+     * @param array<string, mixed> $propertyInfo The property info from getMemberProperties().
+     */
+    private function checkTypeSpacing(File $phpcsFile, int $stackPtr, array $tokens, array $propertyInfo): void
+    {
+        if ($propertyInfo['type'] === '') {
+            return;
+        }
+
+        /** @var int $typeToken */
+        $typeToken = $propertyInfo['type_end_token'];
+        $error = 'There must be 1 space after the property type declaration; %s found';
+
+        if ($tokens[($typeToken + 1)]['code'] !== T_WHITESPACE) {
+            $data = ['0'];
+            $fix = $phpcsFile->addFixableError($error, $typeToken, 'SpacingAfterType', $data);
+            if ($fix === true) {
+                $phpcsFile->fixer->addContent($typeToken, ' ');
+            }
+        } elseif ($tokens[($typeToken + 1)]['content'] !== ' ') {
+            $next = $phpcsFile->findNext(T_WHITESPACE, ($typeToken + 1), null, true);
+            $found = $tokens[$next]['line'] !== $tokens[$typeToken]['line']
+                ? 'newline'
+                : $tokens[($typeToken + 1)]['length'];
+
+            $data = [$found];
+
+            $nextNonWs = $phpcsFile->findNext(Tokens::EMPTY_TOKENS, ($typeToken + 1), null, true);
+            if ($nextNonWs !== $next) {
+                $phpcsFile->addError($error, $typeToken, 'SpacingAfterType', $data);
+            } else {
                 $fix = $phpcsFile->addFixableError($error, $typeToken, 'SpacingAfterType', $data);
                 if ($fix === true) {
-                    $phpcsFile->fixer->addContent($typeToken, ' ');
-                }
-            } elseif ($tokens[($typeToken + 1)]['content'] !== ' ') {
-                $next = $phpcsFile->findNext(T_WHITESPACE, ($typeToken + 1), null, true);
-                if ($tokens[$next]['line'] !== $tokens[$typeToken]['line']) {
-                    $found = 'newline';
-                } else {
-                    $found = $tokens[($typeToken + 1)]['length'];
-                }
-
-                $data = [$found];
-
-                $nextNonWs = $phpcsFile->findNext(Tokens::EMPTY_TOKENS, ($typeToken + 1), null, true);
-                if ($nextNonWs !== $next) {
-                    $phpcsFile->addError($error, $typeToken, 'SpacingAfterType', $data);
-                } else {
-                    $fix = $phpcsFile->addFixableError($error, $typeToken, 'SpacingAfterType', $data);
-                    if ($fix === true) {
-                        if ($found === 'newline') {
-                            $phpcsFile->fixer->beginChangeset();
-                            for ($x = ($typeToken + 1); $x < $next; $x++) {
-                                $phpcsFile->fixer->replaceToken($x, '');
-                            }
-                            $phpcsFile->fixer->addContent($typeToken, ' ');
-                            $phpcsFile->fixer->endChangeset();
-                        } else {
-                            $phpcsFile->fixer->replaceToken(($typeToken + 1), ' ');
+                    if ($found === 'newline') {
+                        $phpcsFile->fixer->beginChangeset();
+                        for ($x = ($typeToken + 1); $x < $next; $x++) {
+                            $phpcsFile->fixer->replaceToken($x, '');
                         }
+                        $phpcsFile->fixer->addContent($typeToken, ' ');
+                        $phpcsFile->fixer->endChangeset();
+                    } else {
+                        $phpcsFile->fixer->replaceToken(($typeToken + 1), ' ');
                     }
                 }
             }
         }
+    }
 
+    /**
+     * Check that visibility is declared.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param int $stackPtr The position of the property token.
+     * @param array<int, array<string, mixed>> $tokens The token stack.
+     * @param array<string, mixed> $propertyInfo The property info from getMemberProperties().
+     */
+    private function checkVisibility(File $phpcsFile, int $stackPtr, array $tokens, array $propertyInfo): void
+    {
         if ($propertyInfo['scope_specified'] === false && $propertyInfo['set_scope'] === false) {
             $error = 'Visibility must be declared on property "%s"';
             $data = [$tokens[$stackPtr]['content']];
             $phpcsFile->addError($error, $stackPtr, 'ScopeMissing', $data);
         }
+    }
 
-        // Check modifier ordering (same as PSR2).
-        $hasVisibilityModifier = ($propertyInfo['scope_specified'] === true || $propertyInfo['set_scope'] !== false);
-        $lastVisibilityModifier = $phpcsFile->findPrevious(Tokens::SCOPE_MODIFIERS, ($stackPtr - 1));
-        $firstVisibilityModifier = $lastVisibilityModifier;
+    /**
+     * Check modifier ordering (visibility, final, abstract, static, readonly, asymmetric visibility).
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param int $stackPtr The position of the property token.
+     * @param array<int, array<string, mixed>> $tokens The token stack.
+     * @param array<string, mixed> $propertyInfo The property info from getMemberProperties().
+     */
+    private function checkModifierOrder(File $phpcsFile, int $stackPtr, array $tokens, array $propertyInfo): void
+    {
+        $hasVisibility = ($propertyInfo['scope_specified'] === true || $propertyInfo['set_scope'] !== false);
+        if (!$hasVisibility) {
+            return;
+        }
 
+        $lastVisibilityPtr = $phpcsFile->findPrevious(Tokens::SCOPE_MODIFIERS, ($stackPtr - 1));
+        assert(is_int($lastVisibilityPtr));
+        $firstVisibilityPtr = $lastVisibilityPtr;
+
+        // Check asymmetric visibility ordering (read-visibility before write-visibility).
         if ($propertyInfo['scope_specified'] === true && $propertyInfo['set_scope'] !== false) {
             $scopePtr = $phpcsFile->findPrevious([T_PUBLIC, T_PROTECTED, T_PRIVATE], ($stackPtr - 1));
             $setScopePtr = $phpcsFile->findPrevious([T_PUBLIC_SET, T_PROTECTED_SET, T_PRIVATE_SET], ($stackPtr - 1));
+            assert(is_int($scopePtr) && is_int($setScopePtr));
             if ($scopePtr > $setScopePtr) {
-                $error = 'The "read"-visibility must come before the "write"-visibility';
-                $fix = $phpcsFile->addFixableError($error, $stackPtr, 'AvizKeywordOrder');
+                $fix = $phpcsFile->addFixableError(
+                    'The "read"-visibility must come before the "write"-visibility',
+                    $stackPtr,
+                    'AvizKeywordOrder'
+                );
                 if ($fix === true) {
-                    $phpcsFile->fixer->beginChangeset();
-                    for ($i = ($scopePtr + 1); $scopePtr < $stackPtr; $i++) {
-                        if ($tokens[$i]['code'] !== T_WHITESPACE) {
-                            break;
-                        }
-                        $phpcsFile->fixer->replaceToken($i, '');
-                    }
-                    $phpcsFile->fixer->replaceToken($scopePtr, '');
-                    $phpcsFile->fixer->addContentBefore($setScopePtr, $tokens[$scopePtr]['content'] . ' ');
-                    $phpcsFile->fixer->endChangeset();
+                    $this->moveModifierBefore($phpcsFile, $tokens, $stackPtr, $scopePtr, $setScopePtr);
                 }
             }
-            $firstVisibilityModifier = min($scopePtr, $setScopePtr);
+            $firstVisibilityPtr = min($scopePtr, $setScopePtr);
         }
 
-        if ($hasVisibilityModifier === true && $propertyInfo['is_final'] === true) {
-            $scopePtr = $firstVisibilityModifier;
+        // Check final comes before visibility.
+        if ($propertyInfo['is_final'] === true) {
             $finalPtr = $phpcsFile->findPrevious(T_FINAL, ($stackPtr - 1));
-            if ($finalPtr > $scopePtr) {
-                $error = 'The final declaration must come before the visibility declaration';
-                $fix = $phpcsFile->addFixableError($error, $stackPtr, 'FinalAfterVisibility');
+            assert(is_int($finalPtr));
+            if ($finalPtr > $firstVisibilityPtr) {
+                $fix = $phpcsFile->addFixableError(
+                    'The final declaration must come before the visibility declaration',
+                    $stackPtr,
+                    'FinalAfterVisibility'
+                );
                 if ($fix === true) {
-                    $phpcsFile->fixer->beginChangeset();
-                    for ($i = ($finalPtr + 1); $finalPtr < $stackPtr; $i++) {
-                        if ($tokens[$i]['code'] !== T_WHITESPACE) {
-                            break;
-                        }
-                        $phpcsFile->fixer->replaceToken($i, '');
-                    }
-                    $phpcsFile->fixer->replaceToken($finalPtr, '');
-                    $phpcsFile->fixer->addContentBefore($scopePtr, $tokens[$finalPtr]['content'] . ' ');
-                    $phpcsFile->fixer->endChangeset();
+                    $this->moveModifierBefore($phpcsFile, $tokens, $stackPtr, $finalPtr, $firstVisibilityPtr);
                 }
             }
         }
 
-        if ($hasVisibilityModifier === true && $propertyInfo['is_abstract'] === true) {
-            $scopePtr = $firstVisibilityModifier;
+        // Check abstract comes before visibility.
+        if ($propertyInfo['is_abstract'] === true) {
             $abstractPtr = $phpcsFile->findPrevious(T_ABSTRACT, ($stackPtr - 1));
-            if ($abstractPtr > $scopePtr) {
-                $error = 'The abstract declaration must come before the visibility declaration';
-                $fix = $phpcsFile->addFixableError($error, $stackPtr, 'AbstractAfterVisibility');
+            assert(is_int($abstractPtr));
+            if ($abstractPtr > $firstVisibilityPtr) {
+                $fix = $phpcsFile->addFixableError(
+                    'The abstract declaration must come before the visibility declaration',
+                    $stackPtr,
+                    'AbstractAfterVisibility'
+                );
                 if ($fix === true) {
-                    $phpcsFile->fixer->beginChangeset();
-                    for ($i = ($abstractPtr + 1); $abstractPtr < $stackPtr; $i++) {
-                        if ($tokens[$i]['code'] !== T_WHITESPACE) {
-                            break;
-                        }
-                        $phpcsFile->fixer->replaceToken($i, '');
-                    }
-                    $phpcsFile->fixer->replaceToken($abstractPtr, '');
-                    $phpcsFile->fixer->addContentBefore($scopePtr, $tokens[$abstractPtr]['content'] . ' ');
-                    $phpcsFile->fixer->endChangeset();
+                    $this->moveModifierBefore($phpcsFile, $tokens, $stackPtr, $abstractPtr, $firstVisibilityPtr);
                 }
             }
         }
 
-        if ($hasVisibilityModifier === true && $propertyInfo['is_static'] === true) {
-            $scopePtr = $lastVisibilityModifier;
+        // Check static comes after visibility.
+        if ($propertyInfo['is_static'] === true) {
             $staticPtr = $phpcsFile->findPrevious(T_STATIC, ($stackPtr - 1));
-            if ($scopePtr > $staticPtr) {
-                $error = 'The static declaration must come after the visibility declaration';
-                $fix = $phpcsFile->addFixableError($error, $stackPtr, 'StaticBeforeVisibility');
+            assert(is_int($staticPtr));
+            if ($lastVisibilityPtr > $staticPtr) {
+                $fix = $phpcsFile->addFixableError(
+                    'The static declaration must come after the visibility declaration',
+                    $stackPtr,
+                    'StaticBeforeVisibility'
+                );
                 if ($fix === true) {
-                    $phpcsFile->fixer->beginChangeset();
-                    for ($i = ($staticPtr + 1); $staticPtr < $stackPtr; $i++) {
-                        if ($tokens[$i]['code'] !== T_WHITESPACE) {
-                            break;
-                        }
-                        $phpcsFile->fixer->replaceToken($i, '');
-                    }
-                    $phpcsFile->fixer->replaceToken($staticPtr, '');
-                    $phpcsFile->fixer->addContent($scopePtr, ' ' . $tokens[$staticPtr]['content']);
-                    $phpcsFile->fixer->endChangeset();
+                    $this->moveModifierAfter($phpcsFile, $tokens, $stackPtr, $staticPtr, $lastVisibilityPtr);
                 }
             }
         }
 
-        if ($hasVisibilityModifier === true && $propertyInfo['is_readonly'] === true) {
-            $scopePtr = $lastVisibilityModifier;
+        // Check readonly comes after visibility.
+        if ($propertyInfo['is_readonly'] === true) {
             $readonlyPtr = $phpcsFile->findPrevious(T_READONLY, ($stackPtr - 1));
-            if ($scopePtr > $readonlyPtr) {
-                $error = 'The readonly declaration must come after the visibility declaration';
-                $fix = $phpcsFile->addFixableError($error, $stackPtr, 'ReadonlyBeforeVisibility');
+            assert(is_int($readonlyPtr));
+            if ($lastVisibilityPtr > $readonlyPtr) {
+                $fix = $phpcsFile->addFixableError(
+                    'The readonly declaration must come after the visibility declaration',
+                    $stackPtr,
+                    'ReadonlyBeforeVisibility'
+                );
                 if ($fix === true) {
-                    $phpcsFile->fixer->beginChangeset();
-                    for ($i = ($readonlyPtr + 1); $readonlyPtr < $stackPtr; $i++) {
-                        if ($tokens[$i]['code'] !== T_WHITESPACE) {
-                            break;
-                        }
-                        $phpcsFile->fixer->replaceToken($i, '');
-                    }
-                    $phpcsFile->fixer->replaceToken($readonlyPtr, '');
-                    $phpcsFile->fixer->addContent($scopePtr, ' ' . $tokens[$readonlyPtr]['content']);
-                    $phpcsFile->fixer->endChangeset();
+                    $this->moveModifierAfter($phpcsFile, $tokens, $stackPtr, $readonlyPtr, $lastVisibilityPtr);
                 }
             }
         }
+    }
+
+    /**
+     * Move a modifier keyword to before a target position.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param array<int, array<string, mixed>> $tokens The token stack.
+     * @param int $stackPtr The property token position.
+     * @param int $modifierPtr The modifier to move.
+     * @param int $targetPtr The position to move it before.
+     */
+    private function moveModifierBefore(
+        File $phpcsFile,
+        array $tokens,
+        int $stackPtr,
+        int $modifierPtr,
+        int $targetPtr
+    ): void {
+        $phpcsFile->fixer->beginChangeset();
+        for ($i = ($modifierPtr + 1); $modifierPtr < $stackPtr; $i++) {
+            if ($tokens[$i]['code'] !== T_WHITESPACE) {
+                break;
+            }
+            $phpcsFile->fixer->replaceToken($i, '');
+        }
+        $content = $tokens[$modifierPtr]['content'];
+        assert(is_string($content));
+        $phpcsFile->fixer->replaceToken($modifierPtr, '');
+        $phpcsFile->fixer->addContentBefore($targetPtr, $content . ' ');
+        $phpcsFile->fixer->endChangeset();
+    }
+
+    /**
+     * Move a modifier keyword to after a target position.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param array<int, array<string, mixed>> $tokens The token stack.
+     * @param int $stackPtr The property token position.
+     * @param int $modifierPtr The modifier to move.
+     * @param int $targetPtr The position to move it after.
+     */
+    private function moveModifierAfter(
+        File $phpcsFile,
+        array $tokens,
+        int $stackPtr,
+        int $modifierPtr,
+        int $targetPtr
+    ): void {
+        $content = $tokens[$modifierPtr]['content'];
+        assert(is_string($content));
+        $phpcsFile->fixer->beginChangeset();
+        for ($i = ($modifierPtr + 1); $modifierPtr < $stackPtr; $i++) {
+            if ($tokens[$i]['code'] !== T_WHITESPACE) {
+                break;
+            }
+            $phpcsFile->fixer->replaceToken($i, '');
+        }
+        $phpcsFile->fixer->replaceToken($modifierPtr, '');
+        $phpcsFile->fixer->addContent($targetPtr, ' ' . $content);
+        $phpcsFile->fixer->endChangeset();
     }
 
     /**

@@ -212,38 +212,34 @@ class PropertyHookHelper
 
         // Check for valid property declaration tokens.
         $validTokens = [
-            T_PUBLIC => true,
-            T_PROTECTED => true,
-            T_PRIVATE => true,
-            T_STATIC => true,
-            T_READONLY => true,
-            T_VAR => true,
-            T_STRING => true, // Type hint.
-            T_ARRAY => true,
-            T_CALLABLE => true,
-            T_SELF => true,
-            T_PARENT => true,
-            T_NULLABLE => true,
-            T_TYPE_UNION => true,
-            T_TYPE_INTERSECTION => true,
-            T_NS_SEPARATOR => true,
+            T_PUBLIC               => true,
+            T_PROTECTED            => true,
+            T_PRIVATE              => true,
+            T_STATIC               => true,
+            T_READONLY             => true,
+            T_VAR                  => true,
+            T_STRING               => true, // Type hint.
+            T_ARRAY                => true,
+            T_CALLABLE             => true,
+            T_SELF                 => true,
+            T_PARENT               => true,
+            T_NULLABLE             => true,
+            T_TYPE_UNION           => true,
+            T_TYPE_INTERSECTION    => true,
+            T_NS_SEPARATOR         => true,
             T_NAME_FULLY_QUALIFIED => true,
-            T_NAME_QUALIFIED => true,
-            T_NAME_RELATIVE => true,
-            T_FALSE => true,
-            T_TRUE => true,
-            T_NULL => true,
-            T_PUBLIC_SET => true,
-            T_PROTECTED_SET => true,
-            T_PRIVATE_SET => true,
+            T_NAME_QUALIFIED       => true,
+            T_NAME_RELATIVE        => true,
+            T_FALSE                => true,
+            T_TRUE                 => true,
+            T_NULL                 => true,
+            T_PUBLIC_SET           => true,
+            T_PROTECTED_SET        => true,
+            T_PRIVATE_SET          => true,
         ];
 
         // If the previous non-whitespace token is one of these, it's likely a property.
-        if ($prev > 0 && isset($validTokens[$tokens[$prev]['code']])) {
-            return true;
-        }
-
-        return false;
+        return $prev > 0 && isset($validTokens[$tokens[$prev]['code']]);
     }
 
     /**
@@ -279,9 +275,17 @@ class PropertyHookHelper
                 $depth = 0;
                 while ($next < $phpcsFile->numTokens) {
                     $valCode = $tokens[$next]['code'];
-                    if ($valCode === T_OPEN_PARENTHESIS || $valCode === T_OPEN_SQUARE_BRACKET || $valCode === T_OPEN_SHORT_ARRAY) {
+                    if (
+                        $valCode === T_OPEN_PARENTHESIS
+                        || $valCode === T_OPEN_SQUARE_BRACKET
+                        || $valCode === T_OPEN_SHORT_ARRAY
+                    ) {
                         $depth++;
-                    } elseif ($valCode === T_CLOSE_PARENTHESIS || $valCode === T_CLOSE_SQUARE_BRACKET || $valCode === T_CLOSE_SHORT_ARRAY) {
+                    } elseif (
+                        $valCode === T_CLOSE_PARENTHESIS
+                        || $valCode === T_CLOSE_SQUARE_BRACKET
+                        || $valCode === T_CLOSE_SHORT_ARRAY
+                    ) {
                         $depth--;
                     } elseif ($depth === 0 && ($valCode === T_SEMICOLON || $valCode === T_OPEN_CURLY_BRACKET)) {
                         break;

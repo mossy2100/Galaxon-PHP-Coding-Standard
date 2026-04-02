@@ -471,7 +471,7 @@ class ArrayDeclarationSniff implements Sniff
     /**
      * Get array elements (each value or key-value pair at the top level).
      *
-     * @return array<array{start: int, end: int, arrow: int|null}>
+     * @return list<array{start: int, end: int, arrow: int|null}>
      */
     private function getArrayElements(File $phpcsFile, int $openPtr, int $closePtr): array
     {
@@ -883,8 +883,7 @@ class ArrayDeclarationSniff implements Sniff
             }
         }
 
-        $grid .= $bracketIndent . $tokens[$closePtr]['content'];
-        return $grid;
+        return $grid . $bracketIndent . $tokens[$closePtr]['content'];
     }
 
     /**
