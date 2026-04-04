@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **ClassInstantiationNoBracketsSniff** — No longer incorrectly removes parentheses from method/function call argument lists containing `new` expressions (e.g. `$obj->add(new Foo())->method()`).
+
 ---
 
 ## [1.2.0] - 2026-03-30
