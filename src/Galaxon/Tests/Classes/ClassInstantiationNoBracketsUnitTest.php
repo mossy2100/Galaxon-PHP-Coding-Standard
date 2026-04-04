@@ -21,15 +21,15 @@ class ClassInstantiationNoBracketsUnitTest extends AbstractSniffTestCase
     {
         return [
             // Basic method call.
-            44 => 1,
-            // Property access.
-            47 => 1,
-            // Nullsafe operator.
-            50 => 1,
-            // Constructor with arguments.
-            53 => 1,
-            // Chained calls.
             56 => 1,
+            // Property access.
+            59 => 1,
+            // Nullsafe operator.
+            62 => 1,
+            // Constructor with arguments.
+            65 => 1,
+            // Chained calls.
+            68 => 1,
         ];
     }
 

@@ -51,6 +51,23 @@ class ClassInstantiationNoBracketsSniff implements Sniff
 
         $closeParenPtr = $tokens[$stackPtr]['parenthesis_closer'];
 
+        // Check if this parenthesis is a function/method call's argument list rather than
+        // wrapping parentheses. For example, in `->add(new Foo())->sub()`, the `(` before
+        // `new` belongs to the `add()` call and must not be removed.
+        $prevNonEmpty = $phpcsFile->findPrevious(Tokens::EMPTY_TOKENS, ($stackPtr - 1), null, true);
+        if ($prevNonEmpty !== false) {
+            $prevCode = $tokens[$prevNonEmpty]['code'];
+            if (
+                $prevCode === T_STRING
+                || $prevCode === T_VARIABLE
+                || $prevCode === T_CLOSE_PARENTHESIS
+                || $prevCode === T_CLOSE_SQUARE_BRACKET
+                || $prevCode === T_CLOSE_CURLY_BRACKET
+            ) {
+                return;
+            }
+        }
+
         // Check if the token after the closing parenthesis is an object operator.
         $afterClose = $phpcsFile->findNext(Tokens::EMPTY_TOKENS, ($closeParenPtr + 1), null, true);
         if ($afterClose === false) {

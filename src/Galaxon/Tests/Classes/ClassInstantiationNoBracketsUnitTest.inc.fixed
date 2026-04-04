@@ -38,6 +38,18 @@ $e = (new Foo());
 // Valid: parentheses used in arithmetic, not member access.
 $f = (new Foo()) + 1;
 
+// Valid: new inside a method call argument list (must not strip call parens).
+$g1 = $obj->add(new Foo())->method();
+
+// Valid: new inside a function call argument list.
+$g2 = func(new Foo())->method();
+
+// Valid: chained method calls with new as argument.
+$g3 = $obj->mul(2)->add(new Foo())->sub(new Bar());
+
+// Valid: new inside array access call.
+$g4 = $arr[0](new Foo())->method();
+
 // === ERRORS: Unnecessary parentheses ===
 
 // NewWithUnnecessaryParentheses: basic method call.
