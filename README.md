@@ -145,7 +145,6 @@ Links:
 - **AnnotationName**: Enforces correct annotation names
 - **DeprecatedAnnotationDeclaration**: Enforces proper @deprecated annotation format
 - **EmptyComment**: Disallows empty comments
-- **RequireOneLineDocComment**: Requires one-line format for short doc comments
 - **RequireOneLinePropertyDocComment**: Requires one-line format for short property doc comments
 - **UselessInheritDocComment**: Disallows useless @inheritDoc comments
 
@@ -396,7 +395,7 @@ Verifies that properties are declared correctly. This is a replacement for `PSR2
 
 Checks that control structures and code are indented correctly. This is a fork of `Generic.WhiteSpace.ScopeIndent` with PHP 8.4 property hook support.
 
-PHP_CodeSniffer's tokenizer does not recognise property hook braces as scope openers/closers, so the built-in `ScopeIndent` sniff cannot track their indentation. This sniff builds a map of property hook scopes (both the hook container `{ get ... set ... }` and individual hook bodies `get { ... }`) and tracks them alongside the standard scope stack.
+PHP_CodeSniffer's tokenizer does not recognize property hook braces as scope openers/closers, so the built-in `ScopeIndent` sniff cannot track their indentation. This sniff builds a map of property hook scopes (both the hook container `{ get ... set ... }` and individual hook bodies `get { ... }`) and tracks them alongside the standard scope stack.
 
 **Good:**
 ```php

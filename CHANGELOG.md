@@ -7,11 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [Unreleased]
+## [1.2.1] - 2026-04-09
+
+### Changed
+
+- Removed `SlevomatCodingStandard.Commenting.RequireOneLineDocComment` from the ruleset. The sniff was too aggressive in collapsing multi-line docblocks that callers preferred to keep expanded.
 
 ### Fixed
 
 - **ClassInstantiationNoBracketsSniff** — No longer incorrectly removes parentheses from method/function call argument lists containing `new` expressions (e.g. `$obj->add(new Foo())->method()`).
+
+### Documentation
+
+- README: removed `RequireOneLineDocComment` from the sniff list; minor wording fix.
 
 ---
 
