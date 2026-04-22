@@ -37,7 +37,7 @@
         "fix": "vendor/bin/phpcbf -vp",
         "check": "vendor/bin/phpcs -s",
         "report": "vendor/bin/phpcs -q --report=summary",
-        "analyze": "vendor/bin/phpstan analyze -l 9",
+        "analyze": "scripts/analyze",
         "test": "vendor/bin/phpunit",
         "quality": [
             "@fix",
